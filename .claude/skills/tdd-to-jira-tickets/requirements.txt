@@ -1,0 +1,9 @@
+# Python requirements for tdd-to-jira-tickets skill
+# Python 3.8+ required
+
+# HTTP requests library for Jira REST API calls
+requests==2.32.3
+
+# Optional: for better development experience
+# pytest==8.3.4  # If you want to add tests
+# python-dotenv==1.0.1  # If you want to load .env files for credentials
