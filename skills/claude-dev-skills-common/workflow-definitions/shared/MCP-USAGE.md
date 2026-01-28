@@ -122,11 +122,10 @@ getConfluencePageInlineComments(cloudId: "...", pageId: "123456789")
 ## Best Practices
 
 1. **Always search architecture first** - Establishes system context before diving into specifics
-2. **Use domain triggers** - Consult AGENTS.md for Confluence domain triggers
-3. **Prioritize spaces** - TRADING, PRIME, ENG have most relevant documentation
-4. **Extract operational context** - Look for monitoring, alerting, runbook documentation
-5. **Note known gotchas** - Confluence often documents edge cases and known issues
-6. **Fallback gracefully** - If MCP unavailable, proceed with codebase-only context and note limitation
+2. **Prioritize spaces** - Check your project's `~/.claude/config.json` for configured Confluence spaces
+3. **Extract operational context** - Look for monitoring, alerting, runbook documentation
+4. **Note known gotchas** - Confluence often documents edge cases and known issues
+5. **Fallback gracefully** - If MCP unavailable, proceed with codebase-only context and note limitation
 
 ## Error Handling
 

@@ -59,22 +59,16 @@ Use this template structure:
 ## ⚡ Summary
 [1-2 sentence description of the change and its purpose]
 
-**Type:** [Fix/Feature/Refactor/Docs/Chore]
 **Ticket:** [Jira/Issue link if applicable]
 
-## 🎯 Motivation
-[Why was this change needed? What problem does it solve?]
-
-## 🔧 Changes
-[Bullet list of key changes made, organized by area/file]
-- **[Component/Area]:** [Description of change]
-- **[Component/Area]:** [Description of change]
-
-## 🧠 Key Decisions
+## 🧠 Decision Record
 [Document significant technical choices made]
 - **Decision:** [What was decided]
   - **Reasoning:** [Why this approach]
   - **Alternatives:** [What was considered but not chosen]
+
+## 📜 Contract Updates
+Architectural change documentation
 
 ## 📜 Breaking Changes
 - [ ] No breaking changes

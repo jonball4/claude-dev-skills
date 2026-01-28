@@ -57,13 +57,13 @@ This is NON-NEGOTIABLE. Do NOT describe what you will do. Do NOT skip this step.
 
 Agents write artifacts to `~/.claude/work/$TICKET_ID/` directory.
 
-See [workflow-definitions/shared/ARTIFACTS.md](../workflow-definitions/shared/ARTIFACTS.md) for complete structure and file format requirements.
+See [workflow-definitions/shared/ARTIFACTS.md](~/.claude/skills/claude-dev-skills-common/workflow-definitions/shared/ARTIFACTS.md) for complete structure and file format requirements.
 
 **Phase 1:**
 ```javascript
 TaskCreate({
   subject: "Phase 1: Discovery - PX-1234",
-  description: "Gather context from Jira, Confluence, codebase. Requirements in .claude/workflow-definitions/implement-v2/phase1-discovery.md",
+  description: "Gather context from Jira, Confluence, codebase. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase1-discovery.md",
   activeForm: "Performing discovery on system and codebase"
 })
 ```
@@ -72,7 +72,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 2: Planning - PX-1234",
-  description: "Design approach, create component work packages. Requirements in .claude/workflow-definitions/implement-v2/phase2-planning.md",
+  description: "Design approach, create component work packages. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase2-planning.md",
   activeForm: "Planning implementation approach"
 })
 ```
@@ -81,7 +81,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 3: Execution - PX-1234",
-  description: "Parallel component implementation with test-driven-development. Requirements in .claude/workflow-definitions/implement-v2/phase3-execution.md",
+  description: "Parallel component implementation with test-driven-development. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase3-execution.md",
   activeForm: "Implementing feature with test-driven-development"
 })
 ```
@@ -90,7 +90,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 4: Review - PX-1234",
-  description: "Integration testing and quality validation. Requirements in .claude/workflow-definitions/implement-v2/phase4-review.md",
+  description: "Integration testing and quality validation. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase4-review.md",
   activeForm: "Reviewing and verifying implementation"
 })
 ```
@@ -99,7 +99,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 5: Handoff - PX-1234",
-  description: "PR creation and documentation. Requirements in .claude/workflow-definitions/implement-v2/phase5-handoff.md",
+  description: "PR creation and documentation. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase5-handoff.md",
   activeForm: "Creating PR and handoff documentation"
 })
 ```
@@ -123,7 +123,7 @@ Task(
   prompt: `Discovery agent for PX-1234: [TICKET_TITLE]
 
 Context: [Jira details], [TDD at ~/.claude/work/PX-1234/TDD.md if available]
-Mission: Follow .claude/workflow-definitions/implement-v2/phase1-discovery.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase1-discovery.md
 Deliverable: ~/.claude/work/PX-1234/discovery-summary.md
 Task tracking: TaskCreate per discovery area, TaskUpdate when complete
 `
@@ -162,7 +162,7 @@ Task(
   prompt: `Planning agent for PX-1234: [TICKET_TITLE]
 
 Context: discovery-summary.md, TDD.md (if available), Jira PX-1234
-Mission: Follow .claude/workflow-definitions/implement-v2/phase2-planning.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase2-planning.md
 Deliverables: INDEX.md (contracts/architecture), components/*.md (work packages)
 Task tracking: TaskCreate per component, TaskUpdate when complete
 `
@@ -229,7 +229,7 @@ Monitoring planning agent progress...
 
 ## Step 7: Phase 3 (Execution) - Parallel Component Agents
 
-Components (repository, service, API, Kafka) run in parallel. TDD cycle: SCAFFOLDING → MOCKS → RED → GREEN → COMMIT. Details: `.claude/workflow-definitions/implement-v2/phase3-execution.md`
+Components (repository, service, API, Kafka) run in parallel. TDD cycle: SCAFFOLDING → MOCKS → RED → GREEN → COMMIT. Details: `~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase3-execution.md`
 
 Read INDEX.md to identify components:
 ```javascript
@@ -251,7 +251,7 @@ Task(
 
 COMPONENT_TASK_ID: [component task ID from Step 6]
 Context: INDEX.md (contracts), components/[component-name].md (work package)
-Mission: Follow .claude/workflow-definitions/implement-v2/phase3-execution.md (replace $TICKET_ID with PX-1234, $COMPONENT_NAME with [component-name])
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase3-execution.md (replace $TICKET_ID with PX-1234, $COMPONENT_NAME with [component-name])
 
 Task tracking: On success → TaskUpdate({ taskId: [COMPONENT_TASK_ID], status: "completed" }). On failure → leave in_progress, report error.
 
@@ -311,7 +311,7 @@ Task(
   prompt: `Handoff agent for PX-1234: [TICKET_TITLE]
 
 Context: INDEX.md, discovery-summary.md, review-results.md
-Mission: Follow .claude/workflow-definitions/implement-v2/phase5-handoff.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/implement-v2/phase5-handoff.md
 
 The handoff agent will:
 1. Review all workflow artifacts for context

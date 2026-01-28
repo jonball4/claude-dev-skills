@@ -42,22 +42,23 @@ search(query: "[feature keywords] type:issue")
 
 ### 2. Confluence Context (MANDATORY if MCP available)
 
-Use domain triggers from AGENTS.md. Search based on ticket domain:
+Search for relevant architectural and domain documentation:
 
 ```javascript
 // Architecture (always search)
-search(query: "Architecture Overview Trading System")
-search(query: "Trade Falcon OR Architecture Overview Trade Falcon")
+search(query: "Architecture Overview")
+search(query: "System Architecture")
 
 // Domain-specific (based on ticket content)
-// Orders: search(query: "Client Orders OR Order States Trading")
-// Settlement: search(query: "Prime Trading Settlement OR Settlement Trading")
-// Talos: search(query: "Talos Processor OR Talos Trading")
-// DAS: search(query: "DAS Documentation OR DAS ledger accounting")
-// Kafka: search(query: "Kafka producer consumer topic Trading")
+// Search for relevant domain terms, system names, integration points
+// Examples:
+//   - search(query: "Order Processing OR Order States")
+//   - search(query: "Settlement Process")
+//   - search(query: "Message Queue OR Event Processing")
+//   - search(query: "Data Integration")
 ```
 
-**Prioritize spaces:** TRADING, PRIME, ENG
+**Note:** Check your project's config.json for configured Confluence spaces to prioritize
 
 **Extract:**
 - Architectural patterns and constraints
@@ -70,14 +71,23 @@ search(query: "Trade Falcon OR Architecture Overview Trade Falcon")
 
 After understanding business/architectural context:
 
-- Read [/docs/ARCHITECTURE.md](file:///Users/${whoami}/Dev/trade-services/docs/ARCHITECTURE.md)
-- Read [/docs/OVERVIEW.md](file:///Users/${whoami}/Dev/trade-services/docs/OVERVIEW.md)
-- Read [/docs/TESTING.md](file:///Users/${whoami}/Dev/trade-services/docs/TESTING.md)
+- Check for and read common documentation files:
+  - docs/ARCHITECTURE.md
+  - docs/OVERVIEW.md
+  - docs/TESTING.md
+  - README.md
 - Search for similar patterns in code
 - Identify files to modify
 - Map dependencies and integration points
 
 ## Deliverable
+
+🚨 **CRITICAL: YOU MUST WRITE THIS FILE YOURSELF** 🚨
+
+**You are the Discovery agent. The orchestrator is NOT allowed to write this file.**
+**If you return to the orchestrator without writing discovery-summary.md, you have FAILED your mission.**
+
+**YOU MUST use the Write tool to create this file:**
 
 Write findings to: `~/.claude/work/$TICKET_ID/plans/discovery-summary.md`
 
@@ -156,7 +166,7 @@ If Atlassian MCP is not accessible:
 - ✅ Essential codebase documentation read
 - ✅ Similar patterns identified
 - ✅ **discovery-summary.md written using Write tool** (orchestrator cannot do this)
-- ✅ Summary is actionable for Root Cause agent
+- ✅ Summary is actionable for Planning agent
 
 ## Before You Return to Orchestrator
 

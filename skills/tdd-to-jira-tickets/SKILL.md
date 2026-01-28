@@ -42,7 +42,7 @@ Generate import-ready Jira CSVs from TDDs with task granularity and dependency t
 Use `create_jira_tickets_and_links.py` for both phases:
 ```bash
 export JIRA_EMAIL="email@yourorg.com" JIRA_TOKEN="token"
-python .claude/skills/tdd-to-jira-tickets/create_jira_tickets_and_links.py <csv_file>
+python ~/.claude/skills/tdd-to-jira-tickets/create_jira_tickets_and_links.py <csv_file>
 ```
 
 Creates tickets, captures Key→Jira Key mapping, links dependencies. For linking only: reference `create_jira_links_template.py` for script generation.

@@ -57,13 +57,13 @@ This is NON-NEGOTIABLE. Do NOT describe what you will do. Do NOT skip this step.
 
 Agents write artifacts to `~/.claude/work/$TICKET_ID/` directory.
 
-See [workflow-definitions/shared/ARTIFACTS.md](../workflow-definitions/shared/ARTIFACTS.md) for complete structure and file format requirements.
+See [workflow-definitions/shared/ARTIFACTS.md](~/.claude/skills/claude-dev-skills-common/workflow-definitions/shared/ARTIFACTS.md) for complete structure and file format requirements.
 
 **Phase 1:**
 ```javascript
 TaskCreate({
   subject: "Phase 1: Discovery - PX-1234",
-  description: "Gather context from Jira, Confluence, codebase. Requirements in .claude/workflow-definitions/bugfix-v2/phase1-discovery.md",
+  description: "Gather context from Jira, Confluence, codebase. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase1-discovery.md",
   activeForm: "Performing discovery on system and codebase"
 })
 ```
@@ -72,7 +72,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 2: Root Cause Analysis - PX-1234",
-  description: "Debug and identify bug location. Requirements in .claude/workflow-definitions/bugfix-v2/phase2-root-cause.md",
+  description: "Debug and identify bug location. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase2-root-cause.md",
   activeForm: "Analyzing root cause of bug"
 })
 ```
@@ -81,7 +81,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 3: Solution Design - PX-1234",
-  description: "Design minimal fix approach. Requirements in .claude/workflow-definitions/bugfix-v2/phase3-solution.md",
+  description: "Design minimal fix approach. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase3-solution.md",
   activeForm: "Designing solution for bug"
 })
 ```
@@ -90,7 +90,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 4: Execution - PX-1234",
-  description: "Parallel component implementation with TDD. Requirements in .claude/workflow-definitions/bugfix-v2/phase4-execution.md",
+  description: "Parallel component implementation with TDD. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase4-execution.md",
   activeForm: "Implementing bug fix with TDD"
 })
 ```
@@ -99,7 +99,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 5: Review - PX-1234",
-  description: "Regression testing and quality validation. Requirements in .claude/workflow-definitions/bugfix-v2/phase5-review.md",
+  description: "Regression testing and quality validation. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase5-review.md",
   activeForm: "Reviewing and verifying bug fix"
 })
 ```
@@ -108,7 +108,7 @@ TaskCreate({
 ```javascript
 TaskCreate({
   subject: "Phase 6: Handoff - PX-1234",
-  description: "PR creation with root cause documentation. Requirements in .claude/workflow-definitions/bugfix-v2/phase6-handoff.md",
+  description: "PR creation with root cause documentation. Requirements in ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase6-handoff.md",
   activeForm: "Creating PR and handoff documentation"
 })
 ```
@@ -132,7 +132,7 @@ Task(
   prompt: `Discovery agent for bug PX-1234: [BUG_TITLE]
 
 Context: [Jira bug report details]
-Mission: Follow .claude/workflow-definitions/bugfix-v2/phase1-discovery.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase1-discovery.md
 Deliverable: ~/.claude/work/PX-1234/discovery-summary.md
 Task tracking: TaskCreate per discovery area, TaskUpdate when complete
 `
@@ -169,7 +169,7 @@ Task(
   prompt: `Root cause agent for bug PX-1234: [BUG_TITLE]
 
 Context: discovery-summary.md, Jira PX-1234
-Mission: Follow .claude/workflow-definitions/bugfix-v2/phase2-root-cause.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase2-root-cause.md
 Deliverable: ~/.claude/work/PX-1234/root-cause-analysis.md (file:line precision)
 Task tracking: TaskCreate per investigation step (reproduce/debug/identify), TaskUpdate when complete
 May temporarily modify code for debugging.
@@ -207,7 +207,7 @@ Task(
   prompt: `Solution design agent for bug PX-1234: [BUG_TITLE]
 
 Context: discovery-summary.md, root-cause-analysis.md
-Mission: Follow .claude/workflow-definitions/bugfix-v2/phase3-solution.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase3-solution.md
 Deliverables: INDEX.md (fix approach/components), components/*.md (work packages)
 Task tracking: TaskCreate per component, TaskUpdate when complete
 Design minimal fix, include regression test plan.
@@ -273,7 +273,7 @@ Design minimal fix, include regression test plan.
 
 ## Step 8: Phase 4 (Execution) - Parallel Component Agents
 
-Components (repository, service, API, Kafka) run in parallel. TDD cycle: SCAFFOLDING → MOCKS → RED (regression test) → GREEN (fix) → COMMIT. Details: `.claude/workflow-definitions/bugfix-v2/phase4-execution.md`
+Components (repository, service, API, Kafka) run in parallel. TDD cycle: SCAFFOLDING → MOCKS → RED (regression test) → GREEN (fix) → COMMIT. Details: `~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase4-execution.md`
 
 Read INDEX.md to identify components:
 ```javascript
@@ -295,7 +295,7 @@ Task(
 
 COMPONENT_TASK_ID: [component task ID from Step 7]
 Context: INDEX.md (contracts), components/[component-name].md (work package), root-cause-analysis.md
-Mission: Follow .claude/workflow-definitions/bugfix-v2/phase4-execution.md (replace $TICKET_ID with PX-1234, $COMPONENT_NAME with [component-name])
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase4-execution.md (replace $TICKET_ID with PX-1234, $COMPONENT_NAME with [component-name])
 
 Task tracking: On success → TaskUpdate({ taskId: [COMPONENT_TASK_ID], status: "completed" }). On failure → leave in_progress, report error.
 
@@ -355,7 +355,7 @@ Task(
   prompt: `Handoff agent for bug fix PX-1234: [BUG_TITLE]
 
 Context: INDEX.md, discovery-summary.md, root-cause-analysis.md, review-results.md
-Mission: Follow .claude/workflow-definitions/bugfix-v2/phase6-handoff.md
+Mission: Follow ~/.claude/skills/claude-dev-skills-common/workflow-definitions/bugfix-v2/phase6-handoff.md
 
 The handoff agent will:
 1. Review all workflow artifacts, especially root-cause-analysis.md

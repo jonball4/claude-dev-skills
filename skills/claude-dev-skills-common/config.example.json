@@ -1,0 +1,36 @@
+{
+  "$schema": "./config.schema.json",
+  "claude-dev-skills": {
+    "version": "1.0",
+
+    "project": {
+      "name": "My Project",
+      "description": "Project description for context"
+    },
+
+    "jira": {
+      "customFields": {
+        "storyPoints": "customfield_10115"
+      },
+      "defaultProjectKey": "PX"
+    },
+
+    "confluence": {
+      "spaces": ["ENGINEERING", "PRODUCT", "DESIGN"]
+    },
+
+    "commit": {
+      "scopes": ["api", "service", "data", "infra", "docs"],
+      "types": ["feat", "fix", "docs", "refactor", "test", "chore"],
+      "titleMaxLength": 50,
+      "bodyMaxLength": 72
+    },
+
+    "quality": {
+      "testCoverage": {
+        "minimum": 80,
+        "unit": "percent"
+      }
+    }
+  }
+}

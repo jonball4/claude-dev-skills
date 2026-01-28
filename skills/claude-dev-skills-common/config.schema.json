@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Dev Skills Configuration",
+  "description": "Configuration schema for Claude development workflows",
+  "type": "object",
+  "properties": {
+    "claude-dev-skills": {
+      "type": "object",
+      "description": "Namespaced configuration for claude-dev-skills",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Configuration schema version",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        "project": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name for context"
+            },
+            "description": {
+              "type": "string",
+              "description": "Brief project description"
+            }
+          }
+        },
+        "jira": {
+          "type": "object",
+          "description": "Jira integration configuration",
+          "properties": {
+            "customFields": {
+              "type": "object",
+              "description": "Jira custom field IDs (instance-specific)",
+              "properties": {
+                "storyPoints": {
+                  "type": "string",
+                  "description": "Custom field ID for story points (e.g., customfield_10115)",
+                  "pattern": "^customfield_\\d+$"
+                }
+              },
+              "required": ["storyPoints"]
+            },
+            "defaultProjectKey": {
+              "type": "string",
+              "description": "Default Jira project key",
+              "pattern": "^[A-Z][A-Z0-9]*$"
+            }
+          },
+          "required": ["customFields", "defaultProjectKey"]
+        },
+        "confluence": {
+          "type": "object",
+          "description": "Confluence integration configuration",
+          "properties": {
+            "spaces": {
+              "type": "array",
+              "description": "Confluence space names to search for documentation",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["spaces"]
+        },
+        "commit": {
+          "type": "object",
+          "description": "Commit message conventions",
+          "properties": {
+            "scopes": {
+              "type": "array",
+              "description": "Valid commit scopes for conventional commits",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "types": {
+              "type": "array",
+              "description": "Valid commit types",
+              "items": {
+                "type": "string",
+                "enum": ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
+              },
+              "minItems": 1
+            },
+            "titleMaxLength": {
+              "type": "number",
+              "description": "Maximum length for commit title (subject line)",
+              "minimum": 20,
+              "maximum": 100,
+              "default": 50
+            },
+            "bodyMaxLength": {
+              "type": "number",
+              "description": "Maximum line length for commit body",
+              "minimum": 50,
+              "maximum": 120,
+              "default": 72
+            }
+          },
+          "required": ["scopes", "types"]
+        },
+        "quality": {
+          "type": "object",
+          "description": "Quality and testing requirements",
+          "properties": {
+            "testCoverage": {
+              "type": "object",
+              "properties": {
+                "minimum": {
+                  "type": "number",
+                  "description": "Minimum test coverage percentage",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": ["percent"],
+                  "default": "percent"
+                }
+              },
+              "required": ["minimum"]
+            }
+          },
+          "required": ["testCoverage"]
+        }
+      }
+    }
+  },
+  "required": ["claude-dev-skills"]
+}

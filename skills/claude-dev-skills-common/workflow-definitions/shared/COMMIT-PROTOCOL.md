@@ -23,27 +23,76 @@ Ticket: $TICKET_ID
 - `test` - Adding or fixing tests
 - `chore` - Maintenance (dependencies, tooling)
 
+### Scopes
+
+Scopes are project-specific and should be configured in your `~/.claude/config.json`:
+
+```json
+{
+  "commit": {
+    "scopes": ["api", "service", "data", "infra", "docs"]
+  }
+}
+```
+
+Check your project's config for the list of valid scopes for your codebase.
+
+### Message Length Limits
+
+Commit messages should respect configured length limits from `~/.claude/config.json`:
+
+```json
+{
+  "commit": {
+    "titleMaxLength": 50,
+    "bodyMaxLength": 72
+  }
+}
+```
+
+**Title (subject line):**
+- Maximum length: Configured in `titleMaxLength` (default: 50 characters)
+- Format: `type(scope): description` (entire line including type and scope)
+- Keep concise, use body for details
+
+**Body:**
+- Maximum line length: Configured in `bodyMaxLength` (default: 72 characters)
+- Wrap lines to stay within limit
+- Blank line separates title from body
+- Use bullet points for multiple items
+
+**Why these limits?**
+- Title: Fits in git log, GitHub UI, and terminal windows
+- Body: Readable in 80-column terminals with some margin
+
 ### Examples
 
 **Feature implementation:**
 ```
-feat(trade): implement LP settlement payment instruction resolver
+feat(service): add payment instruction resolver
 
-Add service for resolving payment instructions based on institution,
-instrument, and direction. Supports method overrides.
+Add service for resolving payment instructions based
+on institution, instrument, and direction. Supports
+method overrides.
 
 Ticket: PX-1234
 ```
 
 **Bug fix:**
 ```
-fix(trade): correct fee calculation precision in order service
+fix(service): correct fee calculation precision
 
-Root cause: BigDecimal rounding mode was HALF_UP instead of HALF_EVEN,
-causing inconsistent fee calculations for orders with fractional amounts.
+Root cause: BigDecimal rounding mode was HALF_UP
+instead of HALF_EVEN, causing inconsistent fee
+calculations for orders with fractional amounts.
 
 Ticket: PX-5678
 ```
+
+**Notes on examples:**
+- Title ≤ 50 chars: "feat(service): add payment instruction resolver" = 49 chars
+- Body lines ≤ 72 chars: Lines wrapped appropriately
+- Use body for context, keep title concise
 
 ## Creating Commits
 
@@ -52,9 +101,9 @@ Ticket: PX-5678
 ```bash
 git add [files]
 git commit -m "$(cat <<'EOF'
-feat(trade): implement payment instruction resolver
+feat(service): implement payment instruction resolver
 
-Add service for resolving LP settlement payment instructions.
+Add service for resolving payment instructions.
 
 Ticket: PX-1234
 EOF
@@ -70,7 +119,7 @@ EOF
 
 ```bash
 git add [files]
-git commit -m "feat(trade): add payment instruction resolver
+git commit -m "feat(service): add payment instruction resolver
 
 Ticket: PX-1234
 ```
@@ -166,7 +215,7 @@ Every commit MUST be:
 
 ✅ One component implementation with tests:
 ```
-feat(trade): add repository layer for payment instructions
+feat(data): add repository layer for payment instructions
 
 - Add PaymentInstructionRepository with Query methods
 - Add comprehensive test coverage for queries
@@ -177,7 +226,7 @@ Ticket: PX-1234
 
 ✅ Bug fix with regression test:
 ```
-fix(trade): prevent null pointer in order cancellation
+fix(api): prevent null pointer in order cancellation
 
 Root cause: Missing null check for order.metadata field.
 Added null check and regression test to prevent recurrence.
@@ -189,14 +238,14 @@ Ticket: PX-5678
 
 ❌ Commit without tests:
 ```
-feat(trade): add repository layer
+feat(data): add repository layer
 
 (No tests included - not shippable)
 ```
 
 ❌ Commit with failing tests:
 ```
-feat(trade): add repository layer
+feat(data): add repository layer
 
 Tests currently failing, will fix in next commit.
 (Violates atomic rule - breaks CI)
@@ -204,7 +253,7 @@ Tests currently failing, will fix in next commit.
 
 ❌ Partial implementation:
 ```
-feat(trade): add repository layer (WIP)
+feat(data): add repository layer (WIP)
 
 TODO: Add error handling
 TODO: Add validation
@@ -213,7 +262,7 @@ TODO: Add validation
 
 ❌ Multiple unrelated changes:
 ```
-feat(trade): add repository layer, fix API bug, refactor service
+feat(service): add repository layer, fix API bug, refactor service
 
 (Too many concerns - not focused, hard to revert)
 ```

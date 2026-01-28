@@ -61,14 +61,13 @@ type(scope): description
 [optional details]
 
 Ticket: $TICKET_ID
-
-Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 ```
 
 **Valid types:** feat, fix, docs, refactor, test, chore
-**Valid scopes:** trade, financing, bn
+**Valid scopes:** See your project's `~/.claude/config.json` for configured scopes
+**Length limits:** Title ≤ 50 chars (configurable), body lines ≤ 72 chars (configurable)
 
 **GPG Signing:**
 - All commits MUST be GPG signed (non-negotiable)

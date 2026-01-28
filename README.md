@@ -1,507 +1,499 @@
 # Claude Development Skills
 
-A collection of sophisticated Claude Code skills for orchestrated software development workflows. These skills enable multi-phase, multi-agent implementation patterns with test-driven development, code review, and automated handoffs.
-
-## Overview
-
-This repository contains four main skills designed to work with Claude Code:
-
-1. **[implement-v2](#implement-v2)** - 5-phase orchestrated feature implementation workflow
-2. **[bugfix-v2](#bugfix-v2)** - 6-phase orchestrated bug fixing workflow with root cause analysis
-3. **[tdd-to-jira-tickets](#tdd-to-jira-tickets)** - Automated conversion of Technical Design Documents to Jira ticket CSVs with dependency tracking
-4. **[create-pr](#create-pr)** - Automated GitHub pull request creation with comprehensive context from commit history
-
-## Architecture
-
-These skills use a **multi-agent orchestration pattern** where:
-
-- An **orchestrator** manages the overall workflow and phase transitions
-- Specialized **agents** handle each phase (discovery, planning, execution, review, handoff)
-- **Artifacts** stored in `~/.claude/work/$TICKET_ID/` serve as communication between agents
-- **Task lists** track progress and enable cross-session resumption
-
-### Artifact-Driven Design
-
-All agents communicate through structured markdown files:
-
-```
-~/.claude/work/$TICKET_ID/
-├── plans/
-│   ├── discovery-summary.md      # From Phase 1
-│   ├── INDEX.md                   # From Phase 2
-│   ├── components/
-│   │   ├── component1.md          # Work packages
-│   │   └── component2.md
-│   └── root-cause-analysis.md     # Bugfix only
-├── review-results.md              # From Phase 4/5
-└── pr-description.md              # From Phase 5/6
-```
-
-See [workflow-definitions/shared/ARTIFACTS.md](.claude/workflow-definitions/shared/ARTIFACTS.md) for complete structure.
+Sophisticated Claude Code skills for orchestrated software development with multi-phase workflows, test-driven development, and automated code review.
 
 ## Skills
 
 ### implement-v2
+**5-phase orchestrated feature implementation** - Discovery → Planning → Execution → Review → Handoff
 
-**5-phase workflow for feature implementation**
-
-Orchestrates parallel component development with test-driven development, automated review, and PR creation.
-
-#### When to Use
-- Implementing new features from Jira tickets
-- Working with Technical Design Documents (TDDs)
-- Need parallel component development with dependency tracking
-- Require automated code review and quality checks
-
-#### Phases
-1. **Discovery** - Gather context from Jira, Confluence, and codebase
-2. **Planning** - Design approach, create component work packages
-3. **Execution** - Parallel TDD implementation across components
-4. **Review** - Integration testing and quality validation
-5. **Handoff** - PR creation with comprehensive documentation
-
-#### Usage
 ```bash
-# In Claude Code
 /implement-v2 PX-1234
-
-# Or with Jira URL
-/implement-v2 https://yourorg.atlassian.net/browse/PX-1234
 ```
-
-#### Resuming Interrupted Work
-```bash
-CLAUDE_CODE_TASK_LIST_ID=<task-list-id> claude
-# Then use TaskList to see current phase
-```
-
-[📖 Full Documentation](.claude/skills/implement-v2/README.md) | [📄 Skill Definition](.claude/skills/implement-v2/implement-v2.md)
-
----
 
 ### bugfix-v2
+**6-phase bug fixing with root cause analysis** - Discovery → Root Cause → Solution Design → Execution → Review → Handoff
 
-**6-phase workflow for bug fixing with root cause analysis**
-
-Extends the implementation workflow with dedicated root cause analysis and solution design phases.
-
-#### When to Use
-- Fixing bugs reported in Jira
-- Need systematic debugging before implementing fixes
-- Require root cause documentation in PRs
-- Want regression test validation
-
-#### Phases
-1. **Discovery** - Gather context from bug report and codebase
-2. **Root Cause Analysis** - Debug and identify exact bug location
-3. **Solution Design** - Design minimal fix approach
-4. **Execution** - Parallel TDD implementation with regression tests
-5. **Review** - Verify bug fixed, run regression tests
-6. **Handoff** - PR creation with root cause documentation
-
-#### Usage
 ```bash
-# In Claude Code
 /bugfix-v2 BUG-456
-
-# Or with Jira URL
-/bugfix-v2 https://yourorg.atlassian.net/browse/BUG-456
 ```
-
-#### Key Differences from implement-v2
-- **Phase 2**: Dedicated root cause analysis with debugging
-- **Phase 3**: Solution design focused on minimal fixes
-- **Phase 6**: PR description includes root cause summary
-- **Testing**: RED phase includes regression test validation
-
-[📖 Full Documentation](.claude/skills/bugfix-v2/README.md) | [📄 Skill Definition](.claude/skills/bugfix-v2/bugfix-v2.md)
-
----
 
 ### tdd-to-jira-tickets
+**TDD to Jira ticket conversion** - Convert Technical Design Documents to Jira CSV with dependencies and automated ticket creation
 
-**Automated Jira ticket generation from Technical Design Documents**
-
-Converts TDD markdown files into structured Jira ticket CSVs with task granularity, dependency tracking, and vertical slicing for maximum parallelization.
-
-#### When to Use
-- Converting TDD documents to Jira tickets
-- Need milestone-organized tickets with dependency tracking
-- Want vertical slicing (one person owns service + API for feature)
-- Require CSV review before programmatic creation
-
-#### Architecture Patterns
-
-**Three-Layer Architecture:**
-- **API Layer** - Thin interfaces (one ticket per query/mutation)
-- **Service Layer** - Business logic (split by operation groups: Create/Update, Approve/Reject)
-- **Data Layer** - Database access (atomic tickets: table + constraints + indices + migration)
-
-**Interface-First Development:**
-1. Define interface requirements (capabilities, not signatures)
-2. Merge interface definitions → unblocks downstream work
-3. Implement with mocks → enables parallel TDD
-
-#### Features
-- ✅ Vertical slicing for maximum parallelization
-- ✅ Atomic database tickets (no splitting table/constraints/indices)
-- ✅ Interface-first dependency management
-- ✅ Story point estimation (1-3 ideal, 5 max)
-- ✅ Automated ticket creation via Jira API
-- ✅ Dependency link creation
-
-#### Usage
 ```bash
-# Phase 1: Generate CSV
 /tdd-to-jira-tickets /path/to/TDD.md
-
-# Phase 2 & 3: Create tickets and links
-export JIRA_EMAIL="your.email@yourorg.com"
-export JIRA_TOKEN="your_jira_api_token"
-python .claude/skills/tdd-to-jira-tickets/create_jira_tickets_and_links.py milestone1.csv
 ```
-
-#### CSV Format
-```csv
-Key,Jira Key,Summary,Description,Issue Type,Parent,Labels,Priority,Story Points,Blocks,Is Blocked By
-M1-DB-1,,Setup payments table,"Create table...",Task,PX-9000,database|milestone-1,Medium,2,,
-M1-BL-1,,Payment resolver service,"Implement...",Task,PX-9000,service|milestone-1,Medium,2,M1-API-1,M1-DB-1
-M1-API-1,,Payment query,"Add query...",Task,PX-9000,api|milestone-1,Low,1,,M1-BL-1
-```
-
-[📖 Full Documentation](.claude/skills/tdd-to-jira-tickets/SKILL.md) | [📖 Setup Guide](.claude/skills/tdd-to-jira-tickets/README.md)
-
----
 
 ### create-pr
+**Automated PR creation** - Analyze commits and create structured GitHub pull requests
 
-**Automated GitHub pull request creation with commit analysis**
-
-Analyzes commit history from branch base to tip, extracts technical decisions, and creates well-structured pull requests using the `gh` CLI with a comprehensive template.
-
-#### When to Use
-- Creating a pull request for completed work
-- Need structured PR descriptions based on actual commits
-- Want to document technical decisions and context
-- Submitting work for code review
-
-#### What It Does
-1. **Analyzes commits** - Examines all commits from base branch to current HEAD
-2. **Reviews changes** - Inspects file diffs and modifications
-3. **Extracts context** - Identifies technical decisions, breaking changes, and testing
-4. **Generates PR** - Creates structured PR description using comprehensive template
-5. **Pushes branch** - Ensures branch is pushed to remote if needed
-6. **Creates PR** - Uses `gh pr create` to open the pull request
-7. **Outputs context** - Provides session context dump for future reference
-
-#### Usage
 ```bash
-# In Claude Code
-User: "Create a PR for this feature"
-User: "Open a pull request"
-User: "Make a PR"
+"Create a PR for this feature"
 ```
 
-#### PR Template Structure
+[📖 See individual skill documentation in `skills/`](skills/)
 
-The skill generates PRs with:
+## Configuration
 
-- **⚡ Summary** - Concise description with type and ticket
-- **🎯 Motivation** - Why the change was needed
-- **🔧 Changes** - Organized list of modifications
-- **🧠 Key Decisions** - Technical choices with reasoning
-- **📜 Breaking Changes** - API/contract changes if any
-- **🧪 Testing & Verification** - Manual and automated test details
-- **📝 Checklist** - Standard review items
-- **🔗 Related** - Links to issues, docs, related PRs
+### Quick Start
 
-#### Context Dump
+```bash
+# After installation, copy example config (if not already done by bootstrap)
+cp ~/.claude/skills/claude-dev-skills-common/config.example.json ~/.claude/config.json
 
-After PR creation, outputs a context dump in chat (not saved as file) containing:
+# Edit with your values
+vim ~/.claude/config.json
 
-- ⚡ Summary with goal
-- 🧠 Decision record with reasoning and alternatives
-- 📜 Contract updates and architectural changes
-- 🧪 Verification evidence and artifacts
+# Validate
+python3 ~/.claude/skills/claude-dev-skills-common/validate-config.py ~/.claude/config.json
+```
+
+### Configuration File
+
+`~/.claude/config.json` (global, used across all projects)
+
+**Namespaced** under `claude-dev-skills` to avoid conflicts with other skills:
+
+```json
+{
+  "claude-dev-skills": {
+    "version": "1.0",
+    "jira": {
+      "customFields": {
+        "storyPoints": "customfield_10115"
+      },
+      "defaultProjectKey": "PROJ"
+    },
+    "confluence": {
+      "spaces": ["ENGINEERING", "PRODUCT"]
+    },
+    "commit": {
+      "scopes": ["api", "service", "data", "infra"],
+      "types": ["feat", "fix", "docs", "refactor", "test", "chore"]
+    },
+    "quality": {
+      "testCoverage": {
+        "minimum": 80
+      }
+    }
+  }
+}
+```
+
+### Configuration Sections
+
+**Jira** (required for tdd-to-jira-tickets)
+- `customFields.storyPoints` - Your Jira story points field ID (find: Admin → Custom Fields → Story Points)
+- `defaultProjectKey` - Default project when parent not specified
+
+**Confluence** (used in discovery phases)
+- `spaces` - Confluence spaces to search for documentation (order matters)
+
+**Commit** (used in all workflows)
+- `scopes` - Valid commit scopes for your codebase
+- `types` - Valid commit types (Conventional Commits)
+- `titleMaxLength` - Max chars for commit title/subject (default: 50)
+- `bodyMaxLength` - Max line length for commit body (default: 72)
+
+**Quality** (used in TDD workflows)
+- `testCoverage.minimum` - Minimum test coverage percentage
+
+### Environment Variables
+
+**Required for tdd-to-jira-tickets skill:**
+
+Set these in your shell before running the Python scripts:
+
+```bash
+export JIRA_BASE_URL=https://yourcompany.atlassian.net
+export JIRA_EMAIL=your.email@company.com
+export JIRA_TOKEN=your_api_token
+```
+
+Or add to your `~/.bashrc` or `~/.zshrc` for persistence.
+
+Get Jira API token: https://id.atlassian.com/manage-profile/security/api-tokens
+
+**Required for multi-phase workflows:**
+
+The bootstrap script adds this to your shell profile automatically:
+
+```bash
+export CLAUDE_CODE_ENABLE_TASKS=true
+```
+
+
+### Finding Jira Custom Field IDs
+
+**Method 1: UI**
+1. Jira → Administration → Issues → Custom fields
+2. Find "Story Points" → gear icon → View details
+3. URL contains field ID: `customfield_XXXXX`
+
+**Method 2: API**
+```bash
+curl -u email:token https://yourcompany.atlassian.net/rest/api/3/field \
+  | jq '.[] | select(.name == "Story Points")'
+```
+
+### Validation
+
+```bash
+# Validate configuration
+python3 ~/.claude/skills/claude-dev-skills-common/validate-config.py ~/.claude/config.json
+```
+
+### How Configuration Is Used
+
+Configuration is read at workflow start and used by agents throughout execution:
+
+**Phase 1 (Discovery):**
+- `confluence.spaces` - Prioritized spaces for documentation search
+
+**Phase 3/4 (Execution):**
+- `commit.scopes` - Validates commit scopes are project-specific
+- `commit.types` - Validates commit types (defaults to Conventional Commits)
+- `commit.titleMaxLength` - Enforces max title length (default: 50 chars)
+- `commit.bodyMaxLength` - Enforces max body line length (default: 72 chars)
+- `quality.testCoverage.minimum` - Verifies coverage meets threshold before commits
+
+**tdd-to-jira-tickets:**
+- `jira.customFields.storyPoints` - Maps to your Jira instance's story points field
+- `jira.defaultProjectKey` - Fallback project when parent not specified
+
+**Agents receive config via system prompts** - they don't read files directly. Python scripts load config explicitly.
+
+## Installation
+
+### Quick Install (Recommended)
+
+Use the bootstrap script for automatic setup:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/claude-dev-skills.git
+cd claude-dev-skills
+
+# Run bootstrap
+./bootstrap.sh
+```
+
+The bootstrap script will:
+1. **Check prerequisites** - Claude Code CLI, Git, Python, GitHub CLI, Superpowers
+2. **Install skills** - Copy all skills to `~/.claude/skills/`
+3. **Create configuration** - Set up `~/.claude/config.json`
+4. **Configure environment** - Add `CLAUDE_CODE_ENABLE_TASKS=true` to shell profile
+5. **Install Python dependencies** - For tdd-to-jira-tickets (optional)
+6. **Validate configuration** - Check config syntax and completeness
+
+### Installation Structure
+
+After installation, your `~/.claude/` directory will look like:
+
+```
+~/.claude/
+├── config.json                      # Your configuration
+└── skills/
+    ├── bugfix-v2/                   # Bug fixing skill
+    ├── implement-v2/                # Feature implementation skill
+    ├── create-pr/                   # PR creation skill
+    ├── tdd-to-jira-tickets/        # TDD to Jira conversion skill
+    └── claude-dev-skills-common/    # Shared files
+        ├── config.example.json
+        ├── config.schema.json
+        ├── validate-config.py
+        └── workflow-definitions/
+            ├── bugfix-v2/
+            ├── implement-v2/
+            └── shared/
+```
+
+### Manual Installation
+
+If you prefer manual setup or the bootstrap script doesn't work:
 
 #### Prerequisites
-- `gh` CLI installed and authenticated (`gh auth login`)
-- Working on a git branch with commits
-- Branch differs from base branch
 
-[📖 Full Documentation](.claude/skills/create-pr/README.md) | [📄 Skill Definition](.claude/skills/create-pr/SKILL.md)
+**Required:**
+- [Claude Code](https://claude.com/claude-code) CLI v2.1.17+ (for task lists)
+- Git with GPG signing configured
+- [Superpowers](https://github.com/obra/superpowers) skills (for code review)
 
----
+**Optional:**
+- Python 3.8+ (for tdd-to-jira-tickets)
+- Jira API access (for tdd-to-jira-tickets)
+- Atlassian MCP (for Jira/Confluence integration)
+- GitHub CLI `gh` (for create-pr)
 
-## Shared Workflow Definitions
+#### Setup Steps
+
+1. **Enable task lists** (required):
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export CLAUDE_CODE_ENABLE_TASKS=true
+
+# Reload shell
+source ~/.bashrc
+```
+
+2. **Install Superpowers** (required for code review):
+```bash
+# Install from Claude Code marketplace or:
+git clone https://github.com/obra/superpowers.git ~/.claude/skills/superpowers
+```
+
+3. **Clone this repo and install**:
+```bash
+# Clone
+git clone https://github.com/yourusername/claude-dev-skills.git /tmp/claude-dev-skills
+cd /tmp/claude-dev-skills
+
+# Install skills
+cp -r skills/* ~/.claude/skills/
+
+# Configure
+cp skills/claude-dev-skills-common/config.example.json ~/.claude/config.json
+vim ~/.claude/config.json
+```
+
+4. **For tdd-to-jira-tickets**, install Python deps:
+```bash
+cd ~/.claude/skills/tdd-to-jira-tickets
+pip3 install -r requirements.txt
+```
+
+## Architecture
+
+### Multi-Agent Orchestration
+
+- **Orchestrator** - Manages workflow, spawns agents, coordinates phases
+- **Specialized agents** - Handle discovery, planning, execution, review
+- **Artifacts** - Structured markdown files in `~/.claude/work/$TICKET_ID/`
+- **Task lists** - Track progress, enable cross-session resumption
+
+### Artifact Structure
+
+```
+~/.claude/work/$TICKET_ID/
+├── plans/
+│   ├── discovery-summary.md      # Phase 1
+│   ├── INDEX.md                   # Phase 2
+│   ├── components/*.md            # Work packages
+│   └── root-cause-analysis.md     # Bugfix only
+├── review-results.md              # Phase 4/5
+└── pr-description.md              # Phase 5/6
+```
 
 ### TDD Cycle
 
-All component implementations follow a strict TDD cycle:
+All implementations follow:
 
 ```
 SCAFFOLDING (interfaces/types)
   ↓
-MOCKS (generate with mockery)
+MOCKS (generate with language tools)
   ↓
 RED (write failing test)
   ↓
 GREEN (implement to pass)
   ↓
-COMMIT (atomic: tests + impl + mocks)
+COMMIT (atomic: tests + impl)
 ```
 
-[📖 Full TDD Guide](.claude/workflow-definitions/shared/TDD-CYCLE.md)
+See [TDD-CYCLE.md](skills/claude-dev-skills-common/workflow-definitions/shared/TDD-CYCLE.md)
 
-### Commit Protocol
+### Language Support
 
-All commits must follow:
-- GPG signing (required, hard stop on failures)
-- Co-authored by Claude attribution
-- Atomic commits (tests + implementation together)
-- Conventional commit format
+**Go** - Full support with mockery integration ([LANGUAGE-GO.md](skills/claude-dev-skills-common/workflow-definitions/shared/LANGUAGE-GO.md))
 
-[📖 Full Commit Protocol](.claude/workflow-definitions/shared/COMMIT-PROTOCOL.md)
+**Others** - Adapt TDD principles to your language's testing conventions
 
-### Error Recovery
+## Key Concepts
 
-Workflows include comprehensive error recovery:
-- GPG signing failures (preserve work, allow retry)
-- Agent failures (detailed error reporting)
-- Phase blocking (cannot proceed without resolution)
-- Cross-session resumption
+**Vertical Slicing** - One person owns service + API for a feature (context locality)
 
-[📖 Full Error Recovery Guide](.claude/workflow-definitions/shared/ERROR-RECOVERY.md)
+**Interface-First** - Define interfaces first → merge → unblocks parallel work
 
-### MCP Integration
+**Atomic Commits** - Tests + implementation together, GPG signed, individually shippable
 
-Optional integration with Model Context Protocol servers:
-- **Atlassian MCP** - Jira and Confluence access for discovery
-- Fallback to manual context gathering when unavailable
+**Parallel Execution** - Components run simultaneously with dependency tracking
 
-[📖 Full MCP Usage Guide](.claude/workflow-definitions/shared/MCP-USAGE.md)
+**Error Recovery** - GPG failures, agent failures, cross-session resumption
 
-## Installation
+## Usage Patterns
 
-### Prerequisites
+### Feature Implementation
 
-**Required:**
-- [Claude Code](https://claude.com/claude-code) CLI **version 2.1.17 or later** (required for task list functionality)
-- Git with GPG signing configured (for implementation workflows)
-- **[Superpowers](https://github.com/obra/superpowers)** - Required skill dependency for code review (see [blog post](https://blog.fsck.com/2025/10/09/superpowers/))
-  - Specifically: `superpowers:requesting-code-review` skill (used in Phase 4/5 of implement-v2 and bugfix-v2)
+```bash
+/implement-v2 PX-1234
+# Phase 1: Reviews discovery
+# Phase 2: Approves plan
+# Phase 3: Monitors parallel execution
+# Phase 4: Reviews integration
+# Phase 5: Creates PR
+```
 
-**Optional (skill-specific):**
-- Python 3.8+ and pip (for tdd-to-jira-tickets)
-- Jira API access (for tdd-to-jira-tickets)
-- Atlassian MCP w/ Jira + Confluence (for implement-v2 and bugfix-v2)
-- GitHub CLI (`gh`) installed and authenticated (for create-pr)
+### Bug Fixing
 
-### Setup
+```bash
+/bugfix-v2 BUG-456
+# Phase 1: Reviews discovery
+# Phase 2: Approves root cause analysis
+# Phase 3: Approves solution design
+# Phase 4: Monitors execution
+# Phase 5: Validates fix
+# Phase 6: Creates PR
+```
 
-1. **Enable Task List Support**
+### TDD to Jira
 
-   Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
-   ```bash
-   export CLAUDE_CODE_ENABLE_TASKS=true
-   ```
+```bash
+# Generate CSV
+/tdd-to-jira-tickets TDD.md
 
-   Then reload:
-   ```bash
-   source ~/.bashrc  # or ~/.zshrc
-   ```
+# Review CSV, then create tickets
+export JIRA_EMAIL="..." JIRA_TOKEN="..."
+python create_jira_tickets_and_links.py milestone1.csv
+```
 
-   **Learn more about Claude Code task lists:** See [this explanation](https://x.com/trq212/status/2014480496013803643) of how task lists enable multi-agent orchestration.
+### Resuming Work
 
-2. **Install Superpowers** (required for code review):
-   ```bash
-   git clone https://github.com/obra/superpowers.git ~/.claude/skills/superpowers
-   ```
+```bash
+# Use task list ID from previous session
+CLAUDE_CODE_TASK_LIST_ID=<id> claude
 
-   See the [Superpowers blog post](https://blog.fsck.com/2025/10/09/superpowers/) for more details on this skill framework.
+# Check current phase
+TaskList
+```
 
-3. **Clone this repository** into your Claude skills directory:
-   ```bash
-   git clone https://github.com/yourusername/claude-dev-skills.git ~/.claude/skills
-   ```
+## Troubleshooting
 
-4. **For tdd-to-jira-tickets**, install Python dependencies:
-   ```bash
-   cd ~/.claude/skills/tdd-to-jira-tickets
-   pip install -r requirements.txt
-   ```
+### Installation Issues
 
-5. **Configure Jira credentials** (for tdd-to-jira-tickets):
-   ```bash
-   export JIRA_EMAIL="your.email@yourorg.com"
-   export JIRA_TOKEN="your_jira_api_token"
-   ```
+**"Claude Code CLI is required"**
+- Install Claude Code: https://claude.com/claude-code
 
-See [tdd-to-jira-tickets setup guide](.claude/skills/tdd-to-jira-tickets/README.md) for detailed installation.
+**"Superpowers skills not found"**
+- Install from Claude Code marketplace or:
+  ```bash
+  git clone https://github.com/obra/superpowers.git ~/.claude/skills/superpowers
+  ```
+
+**"Configuration validation failed"**
+- Check error messages and fix your config:
+  ```bash
+  vim ~/.claude/config.json
+  python3 ~/.claude/skills/claude-dev-skills-common/validate-config.py
+  ```
+
+**"Python dependencies failed to install"**
+  ```bash
+  # macOS
+  brew install python3
+
+  # Ubuntu/Debian
+  sudo apt install python3 python3-pip
+
+  # Then retry
+  pip3 install -r ~/.claude/skills/tdd-to-jira-tickets/requirements.txt
+  ```
+
+**"gh: command not found"**
+- Install GitHub CLI (optional, for create-pr skill):
+  ```bash
+  # macOS
+  brew install gh
+
+  # Ubuntu/Debian
+  sudo apt install gh
+
+  # Then authenticate
+  gh auth login
+  ```
+
+### Runtime Issues
+
+**GPG signing failed**
+- Configure: `git config --global user.signingkey <key-id>`
+- Enable: `git config --global commit.gpgsign true`
+- Start agent: `gpg-agent`
+
+**Discovery artifact missing**
+- Check agent output for errors
+- Retry: `retry discovery`
+
+**Jira ticket creation failed**
+- Verify `JIRA_EMAIL`, `JIRA_TOKEN`, and `JIRA_BASE_URL` are set in your environment
+- Check API token hasn't expired
+- Ensure parent Epic exists
+
+**Invalid commit scope**
+- Add scope to `~/.claude/config.json` under `commit.scopes`
+
+**Coverage below minimum**
+- Adjust `quality.testCoverage.minimum` in `~/.claude/config.json`
+- Or increase test coverage
 
 ## Repository Structure
 
 ```
-.claude/
-├── skills/
-│   ├── implement-v2/
-│   │   ├── implement-v2.md       # Skill definition
-│   │   └── README.md             # Full documentation
-│   ├── bugfix-v2/
-│   │   ├── bugfix-v2.md          # Skill definition
-│   │   └── README.md             # Full documentation
-│   ├── tdd-to-jira-tickets/
-│   │   ├── SKILL.md              # Skill definition
-│   │   ├── README.md             # Setup guide
-│   │   ├── create_jira_tickets_and_links.py
-│   │   ├── create_jira_links_template.py
-│   │   └── requirements.txt
-│   └── create-pr/
-│       ├── SKILL.md              # Skill definition
-│       └── README.md             # Full documentation
-└── workflow-definitions/
-    ├── implement-v2/
-    │   ├── phase1-discovery.md
-    │   ├── phase2-planning.md
-    │   ├── phase3-execution.md
-    │   ├── phase4-review.md
-    │   └── phase5-handoff.md
-    ├── bugfix-v2/
-    │   ├── phase1-discovery.md
-    │   ├── phase2-root-cause.md
-    │   ├── phase3-solution.md
-    │   ├── phase4-execution.md
-    │   ├── phase5-review.md
-    │   └── phase6-handoff.md
-    └── shared/
-        ├── ARTIFACTS.md          # Artifact structure
-        ├── TDD-CYCLE.md          # TDD protocol
-        ├── COMMIT-PROTOCOL.md    # Git commit rules
-        ├── ERROR-RECOVERY.md     # Error handling
-        └── MCP-USAGE.md          # MCP integration
+skills/
+├── bugfix-v2/                    # Bug fixing skill
+│   ├── README.md
+│   └── SKILL.md
+├── implement-v2/                 # Feature implementation skill
+│   ├── README.md
+│   └── SKILL.md
+├── create-pr/                    # PR creation skill
+│   ├── README.md
+│   └── SKILL.md
+├── tdd-to-jira-tickets/         # TDD to Jira conversion skill
+│   ├── README.md
+│   ├── SKILL.md
+│   ├── requirements.txt
+│   └── *.py
+└── claude-dev-skills-common/    # Shared files
+    ├── config.example.json
+    ├── config.schema.json
+    ├── validate-config.py
+    └── workflow-definitions/
+        ├── implement-v2/         # 5 phase files
+        ├── bugfix-v2/            # 6 phase files
+        └── shared/
+            ├── ARTIFACTS.md
+            ├── TDD-CYCLE.md
+            ├── COMMIT-PROTOCOL.md
+            ├── ERROR-RECOVERY.md
+            ├── MCP-USAGE.md
+            └── LANGUAGE-GO.md
 ```
 
-## Key Concepts
+## Uninstallation
 
-### Orchestration Pattern
+To completely remove claude-dev-skills:
 
-The skills use a **delegating orchestrator** pattern:
+```bash
+# Remove skills
+rm -rf ~/.claude/skills/bugfix-v2
+rm -rf ~/.claude/skills/implement-v2
+rm -rf ~/.claude/skills/create-pr
+rm -rf ~/.claude/skills/tdd-to-jira-tickets
+rm -rf ~/.claude/skills/claude-dev-skills-common
 
-- **Orchestrator remains lean** - Spawns agents, monitors progress, coordinates transitions
-- **Agents do heavy lifting** - Deep exploration, planning, implementation
-- **Artifacts drive workflow** - Agents communicate via structured markdown files
-- **Parallel execution** - Components run simultaneously for maximum efficiency
-- **User approval gates** - Phase transitions require explicit user approval
+# Remove configuration (optional)
+rm ~/.claude/config.json
 
-### Test-Driven Development
-
-All implementations follow TDD:
-
-1. **SCAFFOLDING** - Define interfaces, types, empty implementations (must compile)
-2. **MOCKS** - Generate with mockery (never hand-written)
-3. **RED** - Write failing test (verifies test validates behavior)
-4. **GREEN** - Add minimal implementation to pass
-5. **COMMIT** - Atomic commit with tests + implementation + mocks
-
-### Vertical Slicing
-
-Tasks are sliced vertically for maximum parallelization:
-
-- One person owns service + API for a feature (context locality)
-- Multi-operation services split by operation groups (2-3 points each)
-- Interface definitions merged first → unblocks downstream work
-- Dependencies on interfaces (not implementations) → enables parallel TDD
-
-### Dependency Management
-
-Explicit dependency tracking:
-
-- Component tasks linked via `blockedBy` relationships
-- Dependencies resolved before agent spawning
-- Parallel execution of independent components
-- Failures isolated (continue-on-failure strategy)
-
-## Best Practices
-
-### For implement-v2 and bugfix-v2
-
-1. **Always provide ticket context** - Jira URL or ticket ID
-2. **Review discovery summaries** - Approve Phase 1 before planning
-3. **Verify component plans** - Check work packages before execution
-4. **Monitor parallel execution** - Watch for component failures
-5. **Handle GPG failures gracefully** - Use retry commands
-6. **Resume interrupted work** - Use task list ID for cross-session resumption
-
-### For tdd-to-jira-tickets
-
-1. **Read entire TDD uncompacted** - Vertical slicing requires deep understanding
-2. **Create atomic database tickets** - Table + constraints + indices + migration (ONE ticket)
-3. **Define interfaces first** - Unblocks downstream parallel work
-4. **Apply vertical slicing** - Split by operation groups (1-3 points ideal)
-5. **Map dependencies explicitly** - Use Blocks/Is Blocked By columns
-6. **Review CSV before creation** - Verify breakdown before API calls
-
-### For create-pr
-
-1. **Write descriptive commits** - PR context comes from commit messages
-2. **Review generated PR** - Verify technical decisions are accurate
-3. **Include ticket references** - Link to issues/tickets in commits
-4. **Ensure tests pass** - Run verification before PR creation
-5. **Check branch status** - Confirm branch is up to date with base
-
-## Troubleshooting
-
-### Common Issues
-
-#### "GPG signing failed"
-- Ensure GPG is configured: `git config --global user.signingkey <key-id>`
-- Verify GPG agent is running: `gpg-agent`
-- Check commit signing: `git config --global commit.gpgsign true`
-
-#### "Discovery artifact missing"
-- Discovery agent writes `discovery-summary.md` - if missing, agent failed
-- Check agent output for errors
-- Retry discovery phase with `retry discovery`
-
-#### "Component dependencies not linked"
-- Orchestrator links dependencies after Phase 2 approval
-- Verify INDEX.md contains dependency graph
-- Check task list for `blockedBy` relationships
-
-#### "Jira ticket creation failed"
-- Verify JIRA_EMAIL and JIRA_TOKEN environment variables
-- Check API token hasn't expired
-- Ensure parent Epic exists in Jira
-
-#### "gh: command not found"
-- Install GitHub CLI: `brew install gh` (macOS) or see [gh installation](https://cli.github.com/)
-- Verify installation: `gh --version`
-
-#### "Not authenticated with GitHub"
-- Run `gh auth login` to authenticate
-- Follow prompts to authorize with browser or token
-
-## Contributing
-
-Contributions welcome! Please:
-
-1. Follow existing skill patterns
-2. Update documentation for changes
-3. Test workflows end-to-end
-4. Add error recovery guidance
-
-## License
-
-[Add your license here]
-
-## Support
-
-For issues or questions:
-
-1. Check troubleshooting sections in individual skill READMEs
-2. Review workflow-definitions for phase-specific guidance
-3. Open an issue in this repository
+# Remove environment variables from shell profile (optional)
+# Edit your ~/.bashrc or ~/.zshrc and remove:
+# export CLAUDE_CODE_ENABLE_TASKS=true
+# export JIRA_BASE_URL=...
+# export JIRA_EMAIL=...
+# export JIRA_TOKEN=...
+```
 
 ## Credits
 
-Created for use with [Claude Code](https://claude.com/claude-code) by Anthropic.
+Created for [Claude Code](https://claude.com/claude-code) by Anthropic.
+
+Requires [Superpowers](https://github.com/obra/superpowers) by @obra.

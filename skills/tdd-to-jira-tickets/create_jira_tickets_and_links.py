@@ -24,6 +24,7 @@ import re
 import requests
 from requests.auth import HTTPBasicAuth
 from typing import Dict, List, Optional
+from pathlib import Path
 
 
 # Jira configuration - uses environment variables for authentication
@@ -31,8 +32,46 @@ JIRA_BASE_URL = os.environ.get('JIRA_BASE_URL')
 JIRA_EMAIL = os.environ.get('JIRA_EMAIL')
 JIRA_TOKEN = os.environ.get('JIRA_TOKEN')
 
-# Story points custom field
-STORY_POINTS_FIELD = "customfield_10115"
+# Configuration file paths
+CONFIG_PATHS = [
+    Path.home() / '.claude' / 'config.json',
+    Path('.claude') / 'config.json',
+]
+
+def load_config():
+    """Load configuration from config.json, returning defaults if not found."""
+    defaults = {
+        'jira': {
+            'customFields': {
+                'storyPoints': 'customfield_10115'  # Default value
+            },
+            'defaultProjectKey': 'PX'  # Default value
+        }
+    }
+
+    for config_path in CONFIG_PATHS:
+        if config_path.exists():
+            try:
+                with open(config_path, 'r') as f:
+                    loaded_config = json.load(f)
+                    # Extract namespaced config
+                    if 'claude-dev-skills' in loaded_config:
+                        skill_config = loaded_config['claude-dev-skills']
+                        # Merge with defaults
+                        if 'jira' in skill_config:
+                            defaults['jira'].update(skill_config['jira'])
+                        print(f"✓ Loaded configuration from {config_path}")
+                        return defaults
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"⚠ Warning: Could not load config from {config_path}: {e}")
+
+    print("⚠ No config file found, using default values")
+    return defaults
+
+# Load configuration
+CONFIG = load_config()
+STORY_POINTS_FIELD = CONFIG['jira']['customFields']['storyPoints']
+DEFAULT_PROJECT_KEY = CONFIG['jira']['defaultProjectKey']
 
 
 def verify_environment():
@@ -254,7 +293,7 @@ def create_jira_ticket(row: Dict[str, str]) -> Optional[str]:
 
     # Build fields object
     fields = {
-        "project": {"key": parent.split('-')[0] if parent else "PX"},  # Extract project key from parent
+        "project": {"key": parent.split('-')[0] if parent else DEFAULT_PROJECT_KEY},  # Extract project key from parent or use default
         "summary": summary,
         "description": description_adf,
         "issuetype": {"name": issue_type},
