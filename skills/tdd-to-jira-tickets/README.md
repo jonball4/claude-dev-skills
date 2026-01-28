@@ -30,6 +30,7 @@ The script requires two environment variables:
 
 #### Option A: Export in your shell session
 ```bash
+export JIRA_BASE_URL="http://yourorginc.atlassian.net/"
 export JIRA_EMAIL="your.email@yourorg.com"
 export JIRA_TOKEN="your_jira_api_token"
 ```
@@ -37,6 +38,7 @@ export JIRA_TOKEN="your_jira_api_token"
 #### Option B: Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
 ```bash
 # Add these lines to your shell profile
+export JIRA_BASE_URL="http://yourorginc.atlassian.net/"
 export JIRA_EMAIL="your.email@yourorg.com"
 export JIRA_TOKEN="your_jira_api_token"
 ```
@@ -49,6 +51,7 @@ source ~/.bashrc  # or ~/.zshrc
 #### Option C: Use a .env file (requires python-dotenv)
 Create a `.env` file in the skill directory:
 ```
+JIRA_BASE_URL="http://yourorginc.atlassian.net/"
 JIRA_EMAIL=your.email@yourorg.com
 JIRA_TOKEN=your_jira_api_token
 ```

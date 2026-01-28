@@ -11,6 +11,7 @@ Usage:
     python create_jira_tickets_and_links.py <csv_file>
 
 Requirements:
+    - JIRA_BASE_URL environment variable must be set
     - JIRA_EMAIL environment variable must be set
     - JIRA_TOKEN environment variable must be set
     - CSV file must have required columns: Key, Summary, Description, Issue Type, Parent, Labels, Priority, Story Points, Blocks, Is Blocked By
