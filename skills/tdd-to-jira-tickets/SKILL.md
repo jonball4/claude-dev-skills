@@ -1,13 +1,13 @@
 ---
 name: tdd-to-jira-tickets
-description: Use when converting TDD documents to Jira ticket CSVs with milestones, requiring comprehensive task breakdown and dependency tracking for import
+description: Use when converting TDD documents to structured Jira ticket specifications with milestones, requiring comprehensive task breakdown and dependency tracking for import
 ---
 
 # TDD to Jira Tickets
 
 ## Overview
 
-Generate import-ready Jira CSVs from TDDs with task granularity and dependency tracking. Workflow: (1) CSV with logical keys, (2) Create tickets via Jira API, (3) Link dependencies.
+Generate structured, human-readable markdown specifications from TDDs with task granularity and dependency tracking. Workflow: (1) Markdown with logical keys, (2) Create tickets via Jira API, (3) Link dependencies.
 
 **Core principle:** Discrete technical tasks = separate tickets with explicit dependencies.
 
@@ -15,37 +15,63 @@ Generate import-ready Jira CSVs from TDDs with task granularity and dependency t
 
 - TDD in markdown with milestones section
 - Need milestone-organized Jira tickets with dependency links
-- CSV review before programmatic creation
+- Human-readable review before programmatic creation
 
 **When NOT:** Simple task lists, <5 tasks, tickets exist already.
 
-## CSV Format
+## Output Format
 
-**Columns:** `Key,Jira Key,Summary,Description,Issue Type,Parent,Labels,Priority,Blocks,Is Blocked By`
+Generate a markdown file with structured ticket specifications:
 
+```markdown
+# Milestone X - Project Name
+
+## M1-DB-1: Database Setup for Users Table
+
+**Type:** Task
+**Parent:** PX-9000
+**Labels:** database, milestone-1
+**Priority:** High
+**Story Points:** 2
+**Blocks:** M1-BL-1, M1-BL-2-CU
+**Blocked By:** (none)
+
+### Summary
+Create users table with constraints, indices, migration, and repository interface
+
+### Description
+[Full markdown description with acceptance criteria]
+
+---
+```
+
+**Metadata fields:**
 - **Key**: M{milestone}-{category}-{number} (M1-DB-1, M2-API-5) - logical key
-- **Jira Key**: Actual Jira key (PX-9400) - populated after creation
-- **Summary**: <100 chars
-- **Description**: Full details with acceptance criteria
-- **Blocks/Is Blocked By**: Pipe-separated logical Keys (M1-API-1|M1-API-2)
+- **Type**: Epic, Task, Story, Bug, etc.
+- **Parent**: Parent Epic key (PX-9000)
+- **Labels**: Comma-separated labels
+- **Priority**: Low, Medium, High, Highest
+- **Story Points**: Numeric value
+- **Blocks**: Comma-separated logical Keys (M1-API-1, M1-API-2)
+- **Blocked By**: Comma-separated logical Keys
 
 ## Workflow
 
-**Phase 1 - Generate CSV:**
-1. **CRITICAL:** Check for prior milestone CSVs to avoid duplicates, READ ENTIRE CSV FILES.
+**Phase 1 - Generate Markdown:**
+1. **CRITICAL:** Check for prior milestone markdown files to avoid duplicates, READ ENTIRE FILES.
 2. Read ENTIRE TDD (uncompacted, all sections)
 3. Extract tasks with logical Keys, map dependencies
-4. Generate CSV for review
+4. Generate markdown file for review
 
 **Phase 2 & 3 - Create & Link (Automated):**
 
 Use `create_jira_tickets_and_links.py` for both phases:
 ```bash
 export JIRA_EMAIL="email@yourorg.com" JIRA_TOKEN="token"
-python ~/.claude/skills/tdd-to-jira-tickets/create_jira_tickets_and_links.py <csv_file>
+python ~/.claude/skills/tdd-to-jira-tickets/create_jira_tickets_and_links.py <markdown_file>
 ```
 
-Creates tickets, captures Key→Jira Key mapping, links dependencies. For linking only: reference `create_jira_links_template.py` for script generation.
+Creates tickets, captures Key→Jira Key mapping, links dependencies. Markdown file is updated with Jira keys after creation.
 
 ## Architecture Patterns
 
@@ -127,17 +153,17 @@ Each ticket requires: Overview, Acceptance Criteria (specific testable items fro
 
 ## Process Checklist
 
-**CSV Generation:**
-1. Check prior milestone CSVs to avoid duplicates
+**Markdown Generation:**
+1. Check prior milestone markdown files to avoid duplicates
 2. Read ENTIRE TDD (uncompacted, all sections)
 3. Extract tasks (atomic DB, split large BL, thin APIs, E2E tests only)
 4. Apply vertical slicing (1-3 pts/ticket, 5 max, group BL+API into 3-6 pt slices)
-5. Map dependencies (Data→Service→API), assign Keys, populate Blocks/Is Blocked By
+5. Map dependencies (Data→Service→API), assign Keys, populate Blocks/Blocked By
 6. Verify: interface requirements (NOT signatures), balanced slices, TDD section names referenced
-7. Verify: compliance with expected format of `create_jira_tickets_and_links.py`
+7. Verify: compliance with expected markdown format for `create_jira_tickets_and_links.py`
 
 **Create & Link:**
-Run `create_jira_tickets_and_links.py <csv_file>` (requires JIRA_EMAIL, JIRA_TOKEN env vars)
+Run `create_jira_tickets_and_links.py <markdown_file>` (requires JIRA_EMAIL, JIRA_TOKEN env vars)
 
 ## Common Mistakes
 
@@ -151,8 +177,8 @@ Run `create_jira_tickets_and_links.py <csv_file>` (requires JIRA_EMAIL, JIRA_TOK
 | No interface definition in tickets | **WRONG.** Data layer must define repository interface. Service layer must define service interface. Enables TDD and parallel work. |
 | Waiting for full implementation to start next layer | **WRONG.** Define interfaces first. API can start with mocked service. Service can start with mocked repo. |
 | Unit tests without interface mocking | **WRONG.** Each layer tests against interface contracts with mocked dependencies. True unit isolation. |
-| Missing dependency columns | Add Blocks and Is Blocked By columns, use Key references |
-| No Key column for cross-referencing | Add Key column with M{milestone}-{category}-{number} format |
+| Missing dependency fields | Add Blocks and Blocked By fields, use Key references |
+| No Key field for cross-referencing | Add Key field with M{milestone}-{category}-{number} format |
 | Vague acceptance criteria | Extract specific field names, constraint names, exact requirements from TDD |
 | Creating separate unit/integration test tickets | **NEVER.** Tests are part of implementation tickets. Only E2E scenarios get separate tickets. |
 | Combining GraphQL operations | One ticket per query, one per mutation (but they're thin interfaces) |
@@ -161,7 +187,7 @@ Run `create_jira_tickets_and_links.py <csv_file>` (requires JIRA_EMAIL, JIRA_TOK
 
 ## Quality Checks
 
-TDD read uncompacted, atomic DB tickets, service isolated (no GraphQL deps), API thin/parallelizable during impl, independent data layer, split large tickets (>5 pts), interface requirements (NOT signatures), TDD section names (NOT line numbers), 9 CSV columns, dependencies tracked.
+TDD read uncompacted, atomic DB tickets, service isolated (no GraphQL deps), API thin/parallelizable during impl, independent data layer, split large tickets (>5 pts), interface requirements (NOT signatures), TDD section names (NOT line numbers), structured markdown format, dependencies tracked.
 
 ## Real-World Impact
 

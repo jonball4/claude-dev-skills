@@ -4,6 +4,9 @@
 # HTTP requests library for Jira REST API calls
 requests==2.32.3
 
+# Markdown parsing library
+mistletoe==1.4.0
+
 # Optional: for better development experience
 # pytest==8.3.4  # If you want to add tests
 # python-dotenv==1.0.1  # If you want to load .env files for credentials

@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """
-Automate Jira ticket creation and dependency linking from CSV.
+Automate Jira ticket creation and dependency linking from markdown.
 
 This script handles all three phases of the tdd-to-jira-tickets skill workflow:
-1. Phase 1: Read CSV file with ticket specifications
+1. Phase 1: Read markdown file with ticket specifications
 2. Phase 2: Create tickets in Jira via REST API and capture logical Key → Jira Key mapping
 3. Phase 3: Create dependency links in Jira via REST API
 
 Usage:
-    python create_jira_tickets_and_links.py <csv_file>
+    python create_jira_tickets_and_links.py <markdown_file>
 
 Requirements:
     - JIRA_BASE_URL environment variable must be set
     - JIRA_EMAIL environment variable must be set
     - JIRA_TOKEN environment variable must be set
-    - CSV file must have required columns: Key, Summary, Description, Issue Type, Parent, Labels, Priority, Story Points, Blocks, Is Blocked By
+    - Markdown file must have structured format with ticket specifications
 """
 
-import csv
 import json
 import os
 import sys
@@ -26,6 +25,15 @@ import requests
 from requests.auth import HTTPBasicAuth
 from typing import Dict, List, Optional
 from pathlib import Path
+
+try:
+    import mistletoe
+    from mistletoe import Document
+    from mistletoe.block_token import Heading, Paragraph, List as MList, ThematicBreak
+    from mistletoe.span_token import RawText, Strong, LineBreak
+except ImportError:
+    print("❌ Error: mistletoe library is required. Install it with: pip install mistletoe==1.4.0")
+    sys.exit(1)
 
 
 # Jira configuration - uses environment variables for authentication
@@ -89,18 +97,178 @@ def verify_environment():
     print("✓ Required environment variables are set")
 
 
-def read_csv(csv_file: str) -> List[Dict[str, str]]:
-    """Read CSV file and return list of row dictionaries."""
-    if not os.path.exists(csv_file):
-        print(f"❌ Error: CSV file not found: {csv_file}")
+def read_markdown(markdown_file: str) -> List[Dict[str, str]]:
+    """Read markdown file and return list of ticket dictionaries."""
+    if not os.path.exists(markdown_file):
+        print(f"❌ Error: Markdown file not found: {markdown_file}")
         sys.exit(1)
 
-    with open(csv_file, 'r', newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+    with open(markdown_file, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-    print(f"✓ Read {len(rows)} tickets from CSV")
-    return rows
+    tickets = parse_markdown_tickets(content)
+    print(f"✓ Read {len(tickets)} tickets from markdown")
+    return tickets
+
+
+def extract_text_from_token(token) -> str:
+    """Recursively extract plain text from a mistletoe token."""
+    if isinstance(token, RawText):
+        return token.content
+    if hasattr(token, 'children') and token.children is not None:
+        return ''.join(extract_text_from_token(child) for child in token.children)
+    return ''
+
+
+def parse_markdown_tickets(content: str) -> List[Dict[str, str]]:
+    """Parse markdown content into ticket dictionaries using mistletoe."""
+    tickets = []
+    doc = Document(content)
+
+    # Pattern: ## KEY: Summary
+    ticket_pattern = r'^(M\d+-[A-Z]+-\d+(?:-[A-Z]+)?): (.+?)$'
+
+    i = 0
+    while i < len(doc.children):
+        token = doc.children[i]
+
+        # Look for level 2 headings that match ticket pattern
+        if isinstance(token, Heading) and token.level == 2:
+            heading_text = extract_text_from_token(token).strip()
+            match = re.match(ticket_pattern, heading_text)
+
+            if match:
+                key = match.group(1)
+                summary = match.group(2).strip()
+
+                # Initialize ticket dict
+                ticket = {
+                    'Key': key,
+                    'Summary': summary,
+                    'Description': '',
+                    'Issue Type': '',
+                    'Parent': '',
+                    'Labels': '',
+                    'Priority': '',
+                    'Story Points': '',
+                    'Blocks': '',
+                    'Is Blocked By': '',
+                    'Jira Key': ''
+                }
+
+                # Parse subsequent paragraphs for metadata
+                i += 1
+                description_started = False
+                description_parts = []
+
+                while i < len(doc.children):
+                    current = doc.children[i]
+
+                    # Stop at next ticket (level 2 heading)
+                    if isinstance(current, Heading) and current.level == 2:
+                        break
+
+                    # Stop at thematic break (---)
+                    if isinstance(current, ThematicBreak):
+                        break
+
+                    # Check for ### Description or ### Summary heading
+                    if isinstance(current, Heading) and current.level == 3:
+                        heading_text = extract_text_from_token(current).strip()
+                        if heading_text in ('Description', 'Summary'):
+                            description_started = True
+                            i += 1
+                            continue
+
+                    # If description has started, collect all content
+                    if description_started:
+                        # Convert the token back to markdown for description
+                        if isinstance(current, Paragraph):
+                            text = extract_text_from_token(current)
+                            description_parts.append(text)
+                        elif isinstance(current, MList):
+                            # Handle lists in description
+                            for item in current.children:
+                                item_text = extract_text_from_token(item)
+                                description_parts.append(f"- {item_text}")
+                        elif isinstance(current, Heading):
+                            # Sub-headings in description
+                            text = extract_text_from_token(current)
+                            description_parts.append(f"{'#' * current.level} {text}")
+                        i += 1
+                        continue
+
+                    # Parse metadata from paragraphs
+                    if isinstance(current, Paragraph):
+                        # Metadata paragraph has pattern: **Field:** value with line breaks
+                        # We need to parse each line separately
+
+                        # Extract lines from paragraph by processing Strong/RawText/LineBreak tokens
+                        lines = []
+                        current_line = []
+
+                        for child in current.children:
+                            if isinstance(child, LineBreak):
+                                if current_line:
+                                    lines.append(''.join(current_line))
+                                    current_line = []
+                            elif isinstance(child, Strong):
+                                # Strong contains the field name (e.g., "Type:")
+                                if child.children:
+                                    text = extract_text_from_token(child)
+                                    current_line.append(text)
+                            elif isinstance(child, RawText):
+                                current_line.append(child.content)
+
+                        # Don't forget the last line
+                        if current_line:
+                            lines.append(''.join(current_line))
+
+                        # Parse each line
+                        for line in lines:
+                            line = line.strip()
+                            if ':' not in line:
+                                continue
+
+                            # Split on first colon to get field and value
+                            field, _, value = line.partition(':')
+                            field = field.strip()
+                            value = value.strip()
+
+                            if field == 'Type':
+                                ticket['Issue Type'] = value
+                            elif field == 'Parent':
+                                ticket['Parent'] = value
+                            elif field == 'Labels':
+                                # Convert comma-separated to pipe-separated
+                                ticket['Labels'] = '|'.join([l.strip() for l in value.split(',') if l.strip()])
+                            elif field == 'Priority':
+                                ticket['Priority'] = value
+                            elif field == 'Story Points':
+                                ticket['Story Points'] = value
+                            elif field == 'Blocks':
+                                if value and value.lower() != '(none)':
+                                    # Convert comma-separated to pipe-separated
+                                    ticket['Blocks'] = '|'.join([b.strip() for b in value.split(',') if b.strip()])
+                            elif field == 'Blocked By':
+                                if value and value.lower() != '(none)':
+                                    # Convert comma-separated to pipe-separated
+                                    ticket['Is Blocked By'] = '|'.join([b.strip() for b in value.split(',') if b.strip()])
+                            elif field == 'Jira Key':
+                                ticket['Jira Key'] = value
+
+                    i += 1
+
+                # Join description parts
+                if description_parts:
+                    ticket['Description'] = '\n\n'.join(description_parts).strip()
+
+                tickets.append(ticket)
+                continue
+
+        i += 1
+
+    return tickets
 
 
 def markdown_to_adf(markdown_text: str) -> Dict:
@@ -340,28 +508,79 @@ def create_jira_ticket(row: Dict[str, str]) -> Optional[str]:
         return None
 
 
-def update_csv_with_jira_keys(csv_file: str, rows: List[Dict[str, str]], mapping: Dict[str, str]):
-    """Update CSV file with Jira Key column."""
-    # Check if 'Jira Key' column already exists
-    fieldnames = list(rows[0].keys())
-    if 'Jira Key' not in fieldnames:
-        # Insert 'Jira Key' after 'Key' column
-        key_index = fieldnames.index('Key')
-        fieldnames.insert(key_index + 1, 'Jira Key')
+def update_markdown_with_jira_keys(markdown_file: str, mapping: Dict[str, str]):
+    """Update markdown file with Jira Key metadata field."""
+    with open(markdown_file, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-    # Update rows with Jira keys
-    for row in rows:
-        logical_key = row['Key']
-        jira_key = mapping.get(logical_key, '')
-        row['Jira Key'] = jira_key
+    # Update each ticket section with Jira Key
+    lines = content.split('\n')
+    updated_lines = []
+    i = 0
 
-    # Write updated CSV
-    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
+    ticket_pattern = r'^## (M\d+-[A-Z]+-\d+(?:-[A-Z]+)?): (.+?)$'
 
-    print(f"✓ Updated CSV with Jira Key column")
+    while i < len(lines):
+        line = lines[i]
+        match = re.match(ticket_pattern, line)
+
+        if match:
+            key = match.group(1)
+            jira_key = mapping.get(key, '')
+
+            # Add the heading
+            updated_lines.append(line)
+            i += 1
+
+            # Check if Jira Key already exists
+            jira_key_exists = False
+            metadata_lines = []
+
+            # Collect metadata lines
+            while i < len(lines):
+                current_line = lines[i]
+
+                # Stop at description section or next ticket
+                if current_line.strip().startswith('###') or re.match(ticket_pattern, current_line) or current_line.strip() == '---':
+                    break
+
+                if current_line.startswith('**Jira Key:**'):
+                    jira_key_exists = True
+                    if jira_key:
+                        metadata_lines.append(f'**Jira Key:** {jira_key}')
+                    else:
+                        metadata_lines.append(current_line)
+                else:
+                    metadata_lines.append(current_line)
+
+                i += 1
+
+            # Add Jira Key if it doesn't exist and we have one
+            if not jira_key_exists and jira_key:
+                # Find the right place to insert (after other metadata)
+                insert_index = 0
+                for idx, meta_line in enumerate(metadata_lines):
+                    if meta_line.strip().startswith('**Blocked By:**'):
+                        insert_index = idx + 1
+                        break
+                    elif meta_line.strip().startswith('**Blocks:**'):
+                        insert_index = idx + 1
+
+                if insert_index == 0 and metadata_lines:
+                    insert_index = len(metadata_lines)
+
+                metadata_lines.insert(insert_index, f'**Jira Key:** {jira_key}')
+
+            updated_lines.extend(metadata_lines)
+        else:
+            updated_lines.append(line)
+            i += 1
+
+    # Write updated markdown
+    with open(markdown_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(updated_lines))
+
+    print(f"✓ Updated markdown with Jira Keys")
 
 
 def extract_dependencies(rows: List[Dict[str, str]], mapping: Dict[str, str]) -> List[Dict[str, str]]:
@@ -460,16 +679,16 @@ def create_jira_link(link: Dict[str, str]) -> bool:
 def main():
     """Main execution function."""
     if len(sys.argv) != 2:
-        print("Usage: python create_jira_tickets_and_links.py <csv_file>")
+        print("Usage: python create_jira_tickets_and_links.py <markdown_file>")
         sys.exit(1)
 
-    csv_file = sys.argv[1]
+    markdown_file = sys.argv[1]
 
     print("=" * 80)
-    print("Phase 1: Reading CSV")
+    print("Phase 1: Reading Markdown")
     print("=" * 80)
     verify_environment()
-    rows = read_csv(csv_file)
+    tickets = read_markdown(markdown_file)
 
     print("\n" + "=" * 80)
     print("Phase 2: Creating Jira Tickets")
@@ -479,18 +698,18 @@ def main():
     success_count = 0
     error_count = 0
 
-    for row in rows:
-        logical_key = row['Key']
+    for ticket in tickets:
+        logical_key = ticket['Key']
 
-        # Check if Jira Key already exists in CSV
-        existing_jira_key = row.get('Jira Key', '').strip()
+        # Check if Jira Key already exists
+        existing_jira_key = ticket.get('Jira Key', '').strip()
         if existing_jira_key:
             print(f"  ⚠ Skipping {logical_key} (already has Jira Key: {existing_jira_key})")
             mapping[logical_key] = existing_jira_key
             continue
 
-        print(f"Creating {logical_key}: {row['Summary']}")
-        jira_key = create_jira_ticket(row)
+        print(f"Creating {logical_key}: {ticket['Summary']}")
+        jira_key = create_jira_ticket(ticket)
 
         if jira_key:
             mapping[logical_key] = jira_key
@@ -501,19 +720,19 @@ def main():
     print(f"\nTicket Creation Summary:")
     print(f"  Success: {success_count}")
     print(f"  Errors: {error_count}")
-    print(f"  Total: {len(rows)}")
+    print(f"  Total: {len(tickets)}")
 
     if mapping:
         print("\n" + "=" * 80)
-        print("Updating CSV with Jira Keys")
+        print("Updating Markdown with Jira Keys")
         print("=" * 80)
-        update_csv_with_jira_keys(csv_file, rows, mapping)
+        update_markdown_with_jira_keys(markdown_file, mapping)
 
     print("\n" + "=" * 80)
     print("Phase 3: Creating Dependency Links")
     print("=" * 80)
 
-    links = extract_dependencies(rows, mapping)
+    links = extract_dependencies(tickets, mapping)
     print(f"Found {len(links)} unique dependency links to create\n")
 
     link_success_count = 0
