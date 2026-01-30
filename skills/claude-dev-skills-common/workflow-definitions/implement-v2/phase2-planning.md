@@ -183,6 +183,29 @@ For each component, write to: `~/.claude/work/$TICKET_ID/plans/components/[compo
 - **api-layer**: HTTP handlers, request/response
 - **kafka-integration**: Message producers/consumers
 
+## Unit Testing Philosophy
+
+🚨 **CRITICAL: Unit testing is NOT a separate component or step** 🚨
+
+**Every agent writes unit tests as part of their work package:**
+
+- **Test-Driven Development (TDD) is mandatory** for all implementation agents
+- Each agent follows the RED → GREEN → REFACTOR → COMMIT cycle
+- Unit tests are written BEFORE implementation code
+- All tests must pass before moving to the next unit of work
+- Each work package includes TDD test scenarios, not a separate testing phase
+
+**DO NOT create:**
+- ❌ A "unit-testing" component
+- ❌ A "testing-layer" work package
+- ❌ A separate "write tests" step after implementation
+
+**INSTEAD:**
+- ✅ Each component work package includes "TDD Test Scenarios" section
+- ✅ Implementation agents write tests first, then implementation
+- ✅ Tests pass before agent completes their work package
+- ✅ Testing is atomic with implementation (1 commit per component)
+
 ## Success Criteria
 
 - ✅ Jira requirements validated
@@ -192,6 +215,8 @@ For each component, write to: `~/.claude/work/$TICKET_ID/plans/components/[compo
 - ✅ All acceptance criteria mapped to components
 - ✅ Business rules documented in work packages
 - ✅ Dependency graph defined
+- ✅ **Each work package includes TDD (test-driven-dev) test scenarios** (not separate testing components)
+- ✅ **No separate "unit-testing" or "testing-layer" components created**
 
 ## Before You Return to Orchestrator
 
