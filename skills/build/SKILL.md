@@ -378,11 +378,11 @@ After each implementation packet completes, record its status, worktree, branch,
 
 ## Phase 4: Independent review loop
 
-For the initial review, and for any delta classified as full, use the standalone `review` skill. The review owner MUST be fresh and read-only for every full review iteration. For a documentation-only delta, use the targeted delta reviewer defined below instead of invoking the full skill.
+For the initial review, and for any delta classified as full, use the standalone `review-code` skill. The review owner MUST be fresh and read-only for every full review iteration. For a documentation-only delta, use the targeted delta reviewer defined below instead of invoking the full skill.
 
 Before invoking either reviewer, the integration owner MUST ensure the current range contains the implementation changes beyond the base revision and record the previous and current diff identities.
 
-For a full review, invoke the review owner with the current base/head revisions, the current iteration artifact directory, `REVIEW_ROOT` set to `skills/review`, the supplied ticket context, acceptance criteria, and execution evidence. Do not pass `discovery-summary.md`, `plan.md`, component packets, implementation-agent reports or prompts, implementation rationale, expected findings, or prior review conclusions.
+For a full review, invoke the review owner with the current base/head revisions, the current iteration artifact directory, `REVIEW_ROOT` set to `skills/review-code`, the supplied ticket context, acceptance criteria, and execution evidence. Do not pass `discovery-summary.md`, `plan.md`, component packets, implementation-agent reports or prompts, implementation rationale, expected findings, or prior review conclusions.
 
 The full review owner receives only:
 
@@ -394,7 +394,7 @@ The full review owner receives only:
 
 The review owner MUST remain read-only, MUST NOT contact implementation agents, and MUST NOT rely on a prior review. Read-only review agents do not need implementation worktrees.
 
-After the `review` validator passes, normalize `refined_critique_result.json` into the build review schema in `reviews/iteration-<NNN>.md` and `review-results.md`. Assign internal finding IDs there only; never pass those IDs into source, commits, tickets, pull requests, or user-facing text.
+After the `review-code` validator passes, normalize `refined_critique_result.json` into the build review schema in `reviews/iteration-<NNN>.md` and `review-results.md`. Assign internal finding IDs there only; never pass those IDs into source, commits, tickets, pull requests, or user-facing text.
 
 The normalized review is `APPROVED` only when the refined result contains no actionable findings, required evidence is present, the build artifact consistency gate passes, and no findings remain open. Any finding requiring a code, test, design, or documentation change is `NEEDS_FIXES` and triggers EXECUTE → REVIEW. Advisory observations requiring no change may be recorded without blocking approval.
 

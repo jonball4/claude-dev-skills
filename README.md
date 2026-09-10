@@ -3,7 +3,7 @@
 A harness-agnostic workflow package for substantial software changes:
 
 ```text
-build → review → handoff → create-pr
+build → review-code → handoff → create-pr
               ↘ improve (optional post-build refinement)
 ```
 
@@ -23,7 +23,7 @@ DISCOVER → PLAN → WAIT_FOR_PLAN_ACCEPTANCE → EXECUTE → REVIEW
 
 It provides durable artifacts, explicit worktree isolation, TDD execution gates, subset-aware independent review, finding resolution, handoff approval, and optional PR publication.
 
-### `review`
+### `review-code`
 
 Read-only, repository-agnostic multi-perspective review. It supports full or explicitly selected dimensions:
 
@@ -59,7 +59,7 @@ The installer installs:
 
 ```text
 ~/.agents/skills/build/SKILL.md
-~/.agents/skills/review/SKILL.md
+~/.agents/skills/review-code/SKILL.md
 ~/.agents/skills/create-pr/SKILL.md
 ~/.agents/skills/improve/SKILL.md
 ```
@@ -82,7 +82,7 @@ The default user installation also creates symlinks:
 
 ```text
 ~/.claude/skills/build      → ~/.agents/skills/build
-~/.claude/skills/review     → ~/.agents/skills/review
+~/.claude/skills/review-code → ~/.agents/skills/review-code
 ~/.claude/skills/create-pr → ~/.agents/skills/create-pr
 ~/.claude/skills/improve   → ~/.agents/skills/improve
 ```

@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SKILLS=(build review create-pr improve)
+SKILLS=(build review-code create-pr improve)
 mkdir -p "$SKILLS_DIR"
 
 for skill in "${SKILLS[@]}"; do

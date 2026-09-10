@@ -1,5 +1,5 @@
 ---
-name: review
+name: review-code
 description: Run a structured, repo-agnostic multi-perspective review of a code diff, branch, or pull request
 argument-hint: <artifacts directory or current review context>
 ---
