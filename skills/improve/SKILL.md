@@ -113,6 +113,8 @@ Separate:
 
 Only the last two categories normally justify changing a personal workflow skill.
 
+Standing generalization filter: carry a candidate forward only when its underlying lesson is NOT repo-, service-, or ticket-specific. A signal or candidate whose evidence makes sense only for one repository's layout, migrations, databases, issue tracker, or ticket scope is dropped at extraction time — record it as rejected in the report with the reason ("repo/service/ticket-specific"), not as a pending candidate. When the evidence is ambiguous, treat the candidate as specific unless a second, independent occurrence or a mechanism-level argument shows the lesson transfers.
+
 ### 3. Compare external feedback with internal review
 
 When `EXTERNAL_FEEDBACK` is supplied, reconcile it against the build's final review artifacts:

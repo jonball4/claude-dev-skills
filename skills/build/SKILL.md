@@ -81,6 +81,8 @@ Record the selected procedure, implementation worktree paths, branch names, init
 
 Use one canonical repository-local work directory for the active build. These artifacts are ephemeral local workflow state: retain them while the build may resume or while `improve` needs its evidence, but do not treat them as product-repository documentation or a long-term record.
 
+`.work/` is local-only and MUST NOT be committed (ensure it is gitignored). Never reference `.work/` artifact paths in published outputs the user may act on outside this machine — commit messages, pull request titles/bodies, issue comments, or tracker tickets — and do not cite them as if they were committed repository files. When summarizing evidence externally, inline the substantive results (test counts, coverage percentages, review verdicts, artifact-relative section names) instead of pointing at `.work/` paths. The build MUST NEVER delete `.work/` artifacts — not at completion, not during cleanup, not on ambiguous instructions. Treat user phrases like "remove the artifacts" or "clean up" in the context of non-committed files as "do not reference them in published outputs", never as filesystem deletion. Artifact retention is decided only by the user's explicit, unambiguous request; the artifacts are the sole evidence input for `improve`.
+
 .work/build/<ISSUE-ID>/
 ├── issue.json
 ├── TDD.md                         # optional source design
@@ -206,8 +208,8 @@ DISCOVER → PLAN → WAIT_FOR_PLAN_ACCEPTANCE → EXECUTE
 EXECUTE → REVIEW
 REVIEW → EXECUTE                   when review status is NEEDS_FIXES
 REVIEW → WAIT_FOR_HANDOFF_APPROVAL when review status is APPROVED
-WAIT_FOR_HANDOFF_APPROVAL → HANDOFF                   when no pull request is requested
-WAIT_FOR_HANDOFF_APPROVAL → SQUASH                   when a pull request is requested
+WAIT_FOR_HANDOFF_APPROVAL → SQUASH                   by default (pull request is the standard publication)
+WAIT_FOR_HANDOFF_APPROVAL → HANDOFF                   only on explicit user opt-out of PR creation
 SQUASH → HANDOFF                                       after the single-commit invariant is verified
 ```
 
@@ -538,9 +540,9 @@ Only after an `APPROVED` review:
 2. Verify every commit in the reviewed range has build/test evidence, is independently shippable, and that the committed tree matches the approved review. Any content change returns to EXECUTE → REVIEW.
 3. Verify the current branch is non-detached, differs from its base, contains at least one commit beyond its base, and has a clean working tree and index. Record the atomic commit range, base revision, diff identity, and evidence in `execution-results.md` and `state.json`.
 4. Create `handoff.md` containing the issue ID, outcome, changed behavior, files, contract and migration notes, coverage evidence, verification evidence, review iterations, limitations, follow-ups, atomic commit range, diff identity, and an optional `Workflow Improvement Signals` section recording observed waste, manual steering, review redispatch decisions, artifact inconsistencies, and candidate workflow improvements.
-5. Transition to `WAIT_FOR_HANDOFF_APPROVAL` and present the handoff. Continue only after explicit human approval (`approve`, `approved`, `yes`, or `proceed`). Ambiguous responses require clarification; requested changes return to EXECUTE → REVIEW.
-6. If no pull request is requested, complete the handoff without rewriting commit history.
-7. If a pull request is requested and the repository uses GitHub, transition to `SQUASH`. The delegated integration owner MUST squash the approved atomic commit range into exactly one commit without changing the reviewed tree, then verify the new commit's diff identity, clean worktree, base, branch, and commit count.
+5. Transition to `WAIT_FOR_HANDOFF_APPROVAL` and present the handoff. Publishing a pull request is the DEFAULT outcome: the presentation states a PR will be created after approval, and the user opts out only explicitly. The orchestrator MUST NOT treat silence or the absence of a PR request as a local-only choice. Ambiguous responses require clarification; requested changes return to EXECUTE → REVIEW. Continue only after explicit human approval (`approve`, `approved`, `yes`, or `proceed`).
+6. If the user explicitly opts out of PR creation, complete the handoff locally without rewriting commit history and record the opt-out in `state.json` and `handoff.md`.
+7. When the default applies (no opt-out) and the repository uses GitHub, transition to `SQUASH`. The delegated integration owner MUST squash the approved atomic commit range into exactly one commit without changing the reviewed tree, then verify the new commit's diff identity, clean worktree, base, branch, and commit count.
 8. Update `state.json`, `execution-results.md`, and `handoff.md` with the squash commit and verification evidence. A changed content diff invalidates approval and returns to EXECUTE → REVIEW.
 9. Invoke the standalone `create-pr` skill only after the single-commit invariant and handoff checks pass. Pass `ISSUE_CONTEXT`, `HANDOFF_FILE`, and generic `REVIEW_EVIDENCE`; the build workflow owns approval, while `create-pr` only publishes.
 
@@ -551,7 +553,7 @@ Only after an `APPROVED` review:
    - artifact consistency validation failed and required a correction;
    - the handoff records contradictory, non-portable, or missing identity/evidence fields;
    - explicit user steering changed the workflow contract rather than merely resolving a ticket detail.
-   Do not emit a signal for an isolated agent error that was corrected in the same iteration, expected review findings, successful execution, or an empty signal section. Persist each emitted signal with `predicate`, `evidence`, and `artifact` fields in `state.json`, `execution-results.md`, and `handoff.md`.
+   Do not emit a signal for an isolated agent error that was corrected in the same iteration, expected review findings, successful execution, or an empty signal section. Standing filter: record a signal only when the underlying lesson is NOT repo-, service-, or ticket-specific — a signal whose evidence only makes sense for this repository's layout, migrations, databases, trackers, or ticket scope is not a workflow signal; drop it rather than tagging it on. Persist each emitted signal with `predicate`, `evidence`, and `artifact` fields in `state.json`, `execution-results.md`, and `handoff.md`.
 11. If material signals exist, present the signals briefly and ask one yes/no question: whether to invoke `improve` on the completed build. If the user agrees, invoke `improve` with the current build artifact directory and inject the recorded signals as context; do not ask the user to provide build paths or repeat parameters. If the user declines, record the decision and finish the build. Improve is optional and MUST NOT reopen the completed ticket unless the user explicitly requests implementation changes.
 12. If no material signals exist, do not ask about `improve` and finish normally.
 The workflow is complete only when the human-approved handoff is complete and, when requested, the single-commit pull request is successfully published. An optional improve run may follow; it does not change build completion status.

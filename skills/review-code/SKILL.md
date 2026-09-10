@@ -125,6 +125,8 @@ Each selected critic MUST:
 - read additional repository files only when needed to understand the supplied diff;
 - return the exact JSON response shape required by its prompt;
 - persist its result through `"$REVIEW_ROOT/scripts/write-critique-result.sh" <dimension>`.
+- on elided, truncated, or partially unavailable tool output, re-read only the specific target ranges needed; never re-derive the whole diff or restart exploration from scratch;
+- on provider or tool errors, stop exploring and deliver the required JSON verdict from the evidence already gathered, marking reduced confidence in the summary; a complete verdict from partial evidence is recoverable, a failed agent is not.
 
 The caller MUST provide each selected critic with shell access to the helper scripts and write access restricted to `ARTIFACTS_DIR`; source, commit, branch, ticket, comment, and pull-request writes remain prohibited. Verify one valid result exists for every selected dimension before merging.
 
