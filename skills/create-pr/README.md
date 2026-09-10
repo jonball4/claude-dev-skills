@@ -1,156 +1,90 @@
 # Create PR Skill
 
-Automate GitHub pull request creation with comprehensive context analysis from your commit history.
+`create-pr` is an evidence-aware GitHub publication skill for a compatible agent harness. It analyzes the current branch and uses the authenticated `gh` CLI to create or update a pull request. It is not an implementation, testing, review, or workflow-orchestration skill.
 
-## Overview
+## When to use
 
-This skill analyzes all commits from your branch base to tip, extracts technical decisions and changes, and creates a well-structured pull request using the `gh` CLI with a detailed template.
-
-## When to Use
-
-- Creating a pull request for completed work
-- Need structured PR descriptions based on actual commits
-- Want to document technical decisions and context
-- Submitting work for code review
+- A user explicitly requests a pull request; or
+- the `build` workflow requests publication after its approved handoff.
 
 ## Prerequisites
 
-- `gh` CLI installed and authenticated (`gh auth login`)
-- Working on a git branch with commits
-- Branch differs from base branch (main/master/etc.)
+- `gh` is installed and authenticated;
+- the checkout is on a non-detached branch with commits beyond its verified base;
+- the working tree and index are clean, unless remaining changes are explicitly covered by the handoff;
+- supplied handoff and review evidence matches the current diff identity;
+- no unresolved actionable review finding remains;
+- the invoking harness can inspect commits, diffs, files, and command output.
 
-## What It Does
+When invoked by `build`, the handoff and review evidence are required inputs. The skill stops rather than inventing missing decisions, test results, review status, migration notes, or issue links.
 
-1. **Analyzes commits** - Examines all commits from base branch to current HEAD
-2. **Reviews changes** - Inspects file diffs and modifications
-3. **Extracts context** - Identifies technical decisions, breaking changes, and testing
-4. **Generates PR** - Creates structured PR description using comprehensive template
-5. **Pushes branch** - Ensures branch is pushed to remote if needed
-6. **Creates PR** - Uses `gh pr create` to open the pull request
-7. **Outputs context** - Provides session context dump for future reference
+## What it does
+
+1. Determines the base branch from `origin/HEAD` or an explicitly supplied base.
+2. Reads the complete commit history and diff from base to the current branch.
+3. Checks whether the branch already has an open pull request.
+4. Regenerates the title and complete body from current evidence.
+5. Pushes the branch when required.
+6. Creates a new PR or updates the existing PR for that branch.
+7. Returns a context dump in chat; it does not save that dump as a file.
+
+An existing open PR switches the skill to update mode. It never creates a duplicate PR for the same branch and does not preserve stale sections from the existing description.
+
+## Generated PR structure
+
+The body uses these sections, populated from actual branch and handoff evidence:
+
+- Summary and issue context;
+- Decision Record, including reasoning and alternatives;
+- Contract Updates;
+- Breaking Changes and migration path;
+- Testing & Verification, including commands and observed results;
+- Checklist;
+- Related links and artifacts.
+
+The title format is `[Type]: Brief description` with a maximum length of 50 characters. The exact body is regenerated on every create or update; placeholders and unsupported claims are not valid output.
 
 ## Usage
 
-Invoke the skill when ready to create a PR:
+Invoke the skill through the host harness when ready to publish:
 
-```
-User: "Create a PR for this feature"
-User: "Open a pull request"
-User: "Make a PR"
-```
-
-## PR Template Structure
-
-The skill generates PRs with:
-
-- **⚡ Summary** - Concise description with type and ticket
-- **🎯 Motivation** - Why the change was needed
-- **🔧 Changes** - Organized list of modifications
-- **🧠 Key Decisions** - Technical choices with reasoning
-- **📜 Breaking Changes** - API/contract changes if any
-- **🧪 Testing & Verification** - Manual and automated test details
-- **📝 Checklist** - Standard review items
-- **🔗 Related** - Links to issues, docs, related PRs
-
-## Context Dump
-
-After PR creation, outputs a context dump in chat (not saved as file) containing:
-
-```markdown
-# 🏗️ Context Dump & PR Description
-
-## ⚡ Summary
-Goal and type of change
-
-## 🧠 Decision Record
-Key technical decisions with reasoning and alternatives
-
-## 📜 Contract Updates
-Architectural change documentation
-
-## 🧪 Verification
-Testing evidence and artifacts
+```text
+Create a PR for this feature
+Open a pull request
+Make a PR
 ```
 
-## Example Output
+The build workflow supplies the issue context, handoff file, and review evidence. Direct callers may supply equivalent context. The skill does not fetch issue context independently.
 
-```
-Title: Feature: Add dark mode support to dashboard
+## What it does not do
 
-Body:
-## ⚡ Summary
-Implements dark mode theme switching for the main dashboard with user
-preference persistence.
-
-**Type:** Feature
-**Ticket:** PROJ-123
-
-## 🎯 Motivation
-Users requested dark mode to reduce eye strain during extended sessions.
-Analytics showed 60% of users prefer dark themes in similar applications.
-
-## 🔧 Changes
-- **Theme System:** Added ThemeProvider with dark/light mode support
-- **Dashboard Components:** Updated all components to use theme tokens
-- **User Preferences:** Added theme preference storage to user settings
-- **Toggle UI:** Implemented theme switcher in navigation bar
-
-...
-```
-
-## Best Practices
-
-✅ **Do:**
-- Review commit messages before creating PR
-- Include ticket/issue references
-- Document technical decisions made during implementation
-- Add verification evidence (test results, benchmarks)
-- Link related PRs or documentation
-
-❌ **Avoid:**
-- Creating PRs without reading commit history
-- Using generic descriptions without specifics
-- Skipping sections because they seem empty
-- Guessing at technical context not in commits
-
-## Configuration
-
-No configuration needed. The skill adapts to:
-- Your repository's base branch (main/master/develop)
-- Your commit history and messages
-- Your project structure
-
-## Tips
-
-- Write good commit messages - they become PR context
-- Use conventional commit format for better categorization
-- Include "why" in commit messages, not just "what"
-- Reference issues/tickets in commits for automatic linking
-- Add test results to commit messages when relevant
+- implement or modify product source;
+- run the project's tests or replace review;
+- infer missing technical decisions;
+- decide whether a review is complete;
+- create a PR when the current evidence does not match the current diff;
+- maintain long-term workflow artifacts.
 
 ## Troubleshooting
 
-**"gh: command not found"**
-- Install GitHub CLI: `brew install gh` (macOS) or see [gh installation](https://cli.github.com/)
+**`gh: command not found`**
 
-**"Not authenticated"**
-- Run `gh auth login` to authenticate with GitHub
+Install GitHub CLI, for example on macOS:
 
-**"No commits found"**
-- Ensure you're on a branch with commits different from base branch
-- Check base branch detection with `git remote show origin`
+```bash
+brew install gh
+```
 
-**Empty PR description sections**
-- Write more detailed commit messages
-- Include technical context in commit bodies
-- Claude will ask for clarification if context is unclear
+**Not authenticated**
 
-## Related Skills
+```bash
+gh auth login
+```
 
-- **verification-before-completion** - Use before creating PR to ensure tests pass
-- **requesting-code-review** - Use after PR creation for review preparation
-- **systematic-debugging** - Use if PR introduces issues
+**No commits found**
 
-## License
+Use a branch with commits beyond the verified base. If `origin/HEAD` is unavailable, supply the intended base branch rather than guessing.
 
-Part of claude-dev-skills repository.
+**Evidence or diff mismatch**
+
+Re-run the build review and produce a handoff for the current committed tree. Do not bypass the identity check.

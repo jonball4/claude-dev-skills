@@ -11,7 +11,7 @@ jq -e '
   type == "object" and (.comments | type == "array") and
   (all(.comments[]; type == "object" and (.file | type == "string" and length > 0) and (.line | type == "number" and floor == . and . >= 1) and (.message | type == "string" and length > 0) and (.severity | IN("info", "warning", "error")))) and
   (.summary | type == "string") and (.justification | type == "string") and
-  ((.comments | length) == 0 or (.justification | length > 0))
+  (if (.comments | length) == 0 then (.justification | length > 0) else (.justification | length == 0) end)
 ' <<<"$INPUT" >/dev/null
 TMP=$(mktemp "$ARTIFACTS_DIR/.critique.XXXXXX")
 trap 'rm -f -- "$TMP"' EXIT

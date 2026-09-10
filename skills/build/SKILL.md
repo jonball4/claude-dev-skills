@@ -38,6 +38,26 @@ The invoking harness must provide equivalent capabilities for:
 
 Capability names, tool schemas, and frontmatter are harness-specific. This skill describes required outcomes and boundaries, not a particular tool API. The invoking harness MUST map these capabilities before execution and MUST preserve the contracts, state transitions, review isolation, and evidence requirements below.
 
+## Repository context and execution adapter
+
+When present, read the repository's generated context under `.agents/repo-context/` before discovery and again at the start of every later phase. The context is a repository-specific execution adapter, not build artifact state. Use it to navigate the repository, choose commands, understand architecture, initialize worktrees, and interpret verification; verify stale or contradictory entries against the repository before relying on them. If no repository context exists, use repository instructions and established patterns, and do not invent commands or infrastructure.
+
+The optional `bootstrap-repo` skill creates and refreshes this context. Its files may be committed and maintained as repository configuration; they are distinct from ephemeral `.work/build/` and `.work/review/` artifacts.
+
+## Portable verification oracle contract
+
+The harness or repository adapter MAY expose a composite verification oracle, but a score MUST NOT replace individual gates. Every verification result supplied to this workflow MUST record:
+
+- a stable check name;
+- the command or behavioral scenario used;
+- `pass`, `fail`, or `skipped` status;
+- exit status when a command was run;
+- observed output or an artifact path;
+- whether failure blocks the current gate.
+
+The orchestrator MUST preserve raw verification evidence and MUST NOT report a passing gate when any blocking check fails. Composite scores may prioritize remediation only; they never override a failed blocking check.
+
+
 ## Worktree and concurrency gate
 
 Before planning parallel implementation execution, search the repository and applicable harness documentation for a clearly defined worktree bootstrap procedure. The procedure MUST define how to create, initialize, identify, retain, and clean up an isolated worktree for each implementation task.
@@ -57,9 +77,9 @@ Parallel read-only agents are encouraged when useful. Discovery scouts, document
 
 Record the selected procedure, implementation worktree paths, branch names, initialization results, and cleanup policy in `plan.md` and `execution-results.md`.
 
-## Durable artifacts
+## Local workflow artifacts
 
-Use one canonical repository-local work directory:
+Use one canonical repository-local work directory for the active build. These artifacts are ephemeral local workflow state: retain them while the build may resume or while `improve` needs its evidence, but do not treat them as product-repository documentation or a long-term record.
 
 .work/build/<ISSUE-ID>/
 ├── issue.json
@@ -138,7 +158,8 @@ Update it after every phase transition, packet result, worktree allocation, retr
 
 ## Artifact consistency gate
 
-Artifact validation is part of the EXECUTE → REVIEW loop, not a separate phase. Before a packet or review iteration is considered complete, the orchestrator MUST validate the durable records.
+Artifact validation is part of the EXECUTE → REVIEW loop, not a separate phase. Before a packet or review iteration is considered complete, the orchestrator MUST validate the local workflow records. The installed `scripts/validate-build-state.sh` helper validates the machine-readable state shape and, when given two phases, the allowed transition.
+
 
 Validate `state.json`:
 - required top-level fields exist: `phase`, `planAccepted`, `executionIteration`, `reviewIteration`, `packets`, `worktrees`, `attempts`, `findings`;
@@ -331,32 +352,37 @@ Allocate and initialize each ready, non-conflicting implementation packet's isol
 
 Spawn ready implementation packets as a single swarm only when worktree isolation can be verified by the invoking harness. If isolation cannot be verified for even one implementation packet, do not launch a parallel implementation wave. Fall back to sequential implementation or stop for user input; **DO NOT parallelize implementation agents within the same worktree.** Read-only agents remain safe to parallelize.
 
+Every implementation-agent prompt MUST be structured for compliance and include, in this order:
+
+1. `MUST NOT DO` — forbidden files, behaviors, commands, and previously failed approaches;
+2. `TASK` — one atomic objective;
+3. numbered `STEPS` — the exact execution sequence;
+4. `EXPECTED OUTCOME` — concrete files and observable behavior;
+5. `VERIFY` — the focused command or scenario and required evidence;
+6. `CONTEXT` — packet contract, repository context, and constraints.
+
+Keep prompts short enough to follow. Put prohibitions first, use numbered steps instead of prose, and require exact command output rather than a success claim. Never combine strict-TDD RED and GREEN work in one assignment.
+
 Every implementation-agent prompt MUST include:
 
 ```text
-# Target
-The exact component packet, exclusive file/symbol ownership, TDD mode, and execution risk.
+MUST NOT DO
+Do not modify another packet's ownership, reopen approved scope, or run formatters, linters, or project-wide suites during parallel implementation. Include failed approaches that must not be repeated.
 
-# Change
-Implement only the approved contract using existing repository patterns. Do not reopen scope or architecture.
+TASK
+One atomic objective for the exact component packet.
 
-# Non-goals
-Do not modify files or behavior outside the packet.
+STEPS
+Numbered steps in the exact execution order, including the packet's RED, GREEN, and REFACTOR gates when applicable.
 
-# TDD
-Follow the packet's RED, GREEN, and REFACTOR gates. Never combine RED and GREEN when the packet uses strict TDD. Report the exact output for each gate.
+EXPECTED OUTCOME
+Concrete files changed, observable behavior, focused tests, and >=85% coverage for new additions.
 
-# Quality
-Use pure functions where practical, inject boundary dependencies, and preserve separation of concerns.
+VERIFY
+The focused command or behavioral scenario, exact output required, and any repository-context verification.
 
-# Acceptance
-The packet's observable behavior, focused tests, and >=85% coverage for new additions.
-
-# Coordination
-Report files changed, commands run, output, coverage, blockers, worktree, branch, initialization result, failed approaches avoided, and integration notes.
-
-# Parallel safety
-Do not edit another packet's ownership. Do not run formatters, linters, or project-wide suites during parallel implementation.
+CONTEXT
+Exclusive file/symbol ownership, packet contract, TDD mode, execution risk, dependencies, worktree, branch, repository context, and constraints.
 ```
 
 Keep dependent packets pending until prerequisites complete. If the harness lacks dependency tracking, the orchestrator enforces the dependency graph from `plan.md`.
@@ -366,13 +392,15 @@ Agents MUST:
 - preserve unrelated changes;
 - add focused tests with the implementation;
 - measure coverage for new additions;
-- create frequent atomic commits at each independently shippable slice;
-- ensure every commit builds successfully, passes the relevant focused tests, preserves existing behavior, and is safe to ship or deploy in isolation;
-- include commit identity, build/test commands, results, and evidence for every commit;
+- create temporary atomic commits at each independently shippable slice when execution uses committed worktrees;
+- ensure every temporary commit builds successfully, passes the relevant focused tests, preserves existing behavior, and is safe to ship or deploy in isolation;
+- include commit identity, build/test commands, results, coverage, and evidence for every temporary commit;
 - never create a commit that leaves the branch knowingly broken, untested, non-deployable, or dependent on a later commit to avoid a regression;
 - keep changes that cannot be independently green in one commit rather than splitting them into broken intermediate commits;
-- avoid squashing during EXECUTE or REVIEW; preserve atomic commit history until the human approval gate;
+- avoid squashing during EXECUTE or REVIEW; preserve temporary atomic commit history until the human approval gate;
 - return evidence, not only a success claim.
+
+Temporary execution commits are implementation transport and evidence, not the final publication history. The integration owner may merge them into the approved branch and MUST squash them only after handoff approval when publication requires a single commit. A harness that cannot transport uncommitted worktree changes MUST use temporary commits or an equivalent verified patch-transfer mechanism.
 
 After each implementation packet completes, record its status, worktree, branch, initialization result, atomic commit range, per-commit build/test evidence, changed files, verification commands, coverage measurement, and evidence path in `execution-results.md` and `state.json`. A packet is complete only when its worktree remains inspectable and every commit is independently green and shippable. Missing evidence is failure, not completion.
 
@@ -516,7 +544,7 @@ Only after an `APPROVED` review:
 8. Update `state.json`, `execution-results.md`, and `handoff.md` with the squash commit and verification evidence. A changed content diff invalidates approval and returns to EXECUTE → REVIEW.
 9. Invoke the standalone `create-pr` skill only after the single-commit invariant and handoff checks pass. Pass `ISSUE_CONTEXT`, `HANDOFF_FILE`, and generic `REVIEW_EVIDENCE`; the build workflow owns approval, while `create-pr` only publishes.
 
-10. After handoff and any requested publication complete, derive `Workflow Improvement Signals` deterministically from the durable artifacts. Record a material signal when any of these predicates is true:
+10. After handoff and any requested publication complete, derive `Workflow Improvement Signals` deterministically from the local workflow artifacts. Record a material signal when any of these predicates is true:
    - `reviewIteration >= 2` and at least one finding was introduced after the first review;
    - the review artifact records external feedback not represented in the internal findings;
    - the same packet has an execution attempt with `result: failed` and a later retry;

@@ -6,7 +6,7 @@ argument-hint: ARTIFACT_DIR-or-build-ID
 
 # Improve
 
-Improve the development workflow from evidence, not intuition. This skill is an optional post-build process. It consumes a completed build's durable artifacts plus explicit user steering and produces a bounded workflow-improvement proposal. It may apply changes to workflow skills only after the user approves the proposed changes.
+Improve the development workflow from evidence, not intuition. This skill is an optional post-build process. It consumes a completed build's local, ephemeral workflow artifacts plus explicit user steering and produces a bounded workflow-improvement proposal. It may apply changes to workflow skills only after the user approves the proposed changes.
 
 The workflow is repository- and service-agnostic. It MUST reason from supplied artifacts and repository instructions, never from assumed languages, frameworks, issue trackers, hosting providers, source-tree layouts, service names, or deployment platforms. Repository-specific context and rules remain inputs owned by the repository. Do not encode them into a personal skill.
 

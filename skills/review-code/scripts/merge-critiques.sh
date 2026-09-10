@@ -35,7 +35,9 @@ done
 
 shopt -s nullglob
 for file in "$ARTIFACTS_DIR"/*_critique_result.json; do
-  dim=$(basename "$file" _critique_result.json)
+  base=$(basename "$file")
+  [[ "$base" == "critique_result.json" || "$base" == "refined_critique_result.json" ]] && continue
+  dim=${base%_critique_result.json}
   contains "$dim" "${SELECTED[@]}" || { echo "unexpected critique dimension: $dim" >&2; exit 1; }
 done
 shopt -u nullglob
